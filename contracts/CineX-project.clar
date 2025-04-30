@@ -14,7 +14,7 @@
 
 ;; ========== Import Traits (interfaces for modules) ==========
 
-;; Import NFT Reward Trait - used to interact with NFT reward contracts
+;; Import NFT Reward Trait - used to interact with NFT reward contrgitacts
 (use-trait hub-nft-token-trait 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait.nft-trait)
 
 ;; Imports the rewards-nft-trait for minting NFTs as rewards
