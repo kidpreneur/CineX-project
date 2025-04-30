@@ -1,7 +1,6 @@
 
 ;; title: CineX-rewards-sip09
 
-;; title: CineX-rewards
 ;; version: 1.0.0
 ;; summary: NFT token representing tiers of privileges & rewards for filmmakers to reward contributors
 ;; description: SIP-09 compliant NFT for the CineX platform's reward system
