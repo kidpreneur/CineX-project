@@ -1,0 +1,35 @@
+;; title: crowdfunding-module-trait
+;; version: 1.0.0
+
+(define-trait crowdfunding-trait
+  (
+    ;; Create a new campaign
+     ;; parameters: 
+        ;; project-description - (string-ascii 500); campaign-id - uint funding goal - uint; duration - uint;  reward-tiers-count - uint; (string-ascii 150) - reward-description
+    (create-campaign ((string-ascii 500) uint uint uint uint) (response uint uint))
+    
+    ;; Contribute funds to a campaign
+        ;; paramters: 
+            ;; campaign ID - uint; amount - uint; 
+    (contribute-to-campaign (uint uint) (response bool uint))
+    
+    ;; Claim contributed funds as campaign owner
+        ;; paramters: 
+            ;; campaign ID - uint;
+     (claim-campaign-funds (uint) (response bool uint))
+    
+    ;; Get campaign details
+        ;; parameters:
+            ;; campaign ID - uint
+    (get-campaign (uint) (response {
+        description: (string-ascii 500),
+        funding-goal: uint,
+        duration: uint,
+        owner: principal,
+        reward-tiers: uint,
+        reward-description: (string-ascii 150),
+        total-raised: uint,
+        active: bool
+      } uint))
+    )
+)
