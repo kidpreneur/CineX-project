@@ -5,7 +5,7 @@
 ;; Import the escrow trait interface to ensure the contract implements required functions
 (impl-trait .escrow-module-trait.escrow-trait)
 
-;; Import Crowdfunding Trait - for crowdfunding module functions
+;; Use Crowdfunding Trait - for crowdfunding module functions
 (use-trait esc-crowdfunding-trait .crowdfunding-module-traits.crowdfunding-trait)
 
 ;; Store the principal address of the core contract 
@@ -23,7 +23,7 @@
 ;; Constant holding contract-owner principal
 (define-constant CONTRACT-OWNER tx-sender)
 
-;; Mapping to track each campaign's escrowed STX balance
+;; Mapping to track each campaign's STX funds in escrow
 (define-map campaign-escrow-balances uint uint)
 
 ;; Public function: Allows any user to deposit funds into a campaign's escrow balance
@@ -62,19 +62,19 @@
       (owner (get owner campaign))
 
     )
-    ;; Ensure that the caller is the campaign owner
-    (asserts! (is-eq tx-sender owner) ERR-NOT-AUTHORIZED)
+      ;; Ensure that the caller is the campaign owner
+      (asserts! (is-eq tx-sender owner) ERR-NOT-AUTHORIZED)
 
-    ;; Ensure there are enough funds to withdraw
-    (asserts! (>= current-balance amount) ERR-INSUFFICIENT-BALANCE)
+      ;; Ensure there are enough funds to withdraw
+      (asserts! (>= current-balance amount) ERR-INSUFFICIENT-BALANCE)
     
-    ;; Update the escrow balance
-    (map-set campaign-escrow-balances campaign-id new-balance)
+      ;; Update the escrow balance
+      (map-set campaign-escrow-balances campaign-id new-balance)
     
-    ;; Transfer the withdrawn amount to the campaign owner
-    (unwrap! (stx-transfer? amount (as-contract tx-sender) owner) ERR-TRANSFER-FAILED)
+      ;; Transfer the withdrawn amount to the campaign owner
+      (unwrap! (stx-transfer? amount (as-contract tx-sender) owner) ERR-TRANSFER-FAILED)
     
-    (ok true)
+      (ok true)
   )
 )
 
@@ -97,24 +97,25 @@
       ;;Get core-contract
       (authorized-core-contract (var-get core-contract))
     )
-    ;; Ensure that the caller is the campaign owner
-    (asserts! (is-eq tx-sender owner) ERR-NOT-AUTHORIZED)
+      ;; Ensure that the caller is the campaign owner
+      (asserts! (is-eq tx-sender owner) ERR-NOT-AUTHORIZED)
 
-    ;; Ensure there are enough funds to cover the fee
-    (asserts! (>= current-balance fee-amount) ERR-INSUFFICIENT-BALANCE)
+      ;; Ensure there are enough funds to cover the fee
+      (asserts! (>= current-balance fee-amount) ERR-INSUFFICIENT-BALANCE)
     
-    ;; Update the escrow balance
-    (map-set campaign-escrow-balances campaign-id new-balance)
+      ;; Update the escrow balance
+      (map-set campaign-escrow-balances campaign-id new-balance)
     
-    ;; Transfer the fee amount to the core contract address
-    (unwrap! (stx-transfer? fee-amount (as-contract tx-sender) authorized-core-contract) ERR-TRANSFER-FAILED)
+      ;; Transfer the fee amount to the core contract address
+      (unwrap! (stx-transfer? fee-amount (as-contract tx-sender) authorized-core-contract) ERR-TRANSFER-FAILED)
     
-    (ok true)
+      (ok true)
   )
 )
 
 ;; Read-only function: Fetches the current escrow balance for a given campaign
 (define-read-only (get-campaign-balance (campaign-id uint))
+  ;; default-to zero if optional-value of campaign-balance is none 
   (ok (default-to u0 (map-get? campaign-escrow-balances campaign-id)))
 )
 

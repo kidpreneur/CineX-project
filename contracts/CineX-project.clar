@@ -1,11 +1,12 @@
 ;; title: CineX 
 ;; version: 1.0.0 
 ;; ========== Summary ==========
-;; * Main Entry Point for all modules (crowdfunding, rewards, escrow) of the CineX film crowdfunding platform
+;;  Main Entry Point for all modules (crowdfunding, rewards, escrow) of the CineX film crowdfunding platform
 ;; => Acts as the center hub for the CineX platform.
 ;; => Manages administrators.
 ;; => Links the crowdfunding, rewards, and escrow modules dynamically (can upgrade them if needed).
 ;; => Provides read-only access to platform stats (module addresses)
+
 ;; ========== Description ==========
 ;; Decentralized crowdfunding platform for filmmakers, connecting them with supporters securely via blockchain.
 
@@ -17,7 +18,7 @@
 ;; Import NFT Reward Trait - used to interact with NFT reward contracts
 (use-trait hub-nft-token-trait 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait.nft-trait)
 
-;; Imports the rewards-nft-trait for minting NFTs as rewards
+;; Import the rewards-nft-trait for minting NFTs as rewards
 (use-trait hub-nft-reward-trait .rewards-nft-trait.rewards-nft-trait)
 
 ;; Import Crowdfunding Trait - for crowdfunding module functions
@@ -83,7 +84,7 @@
 
 ;; ========== Module Management Functions ==========
 
-;; Public function to set the crowdfunding module address
+;; Public function to dynamically set the crowdfunding module address
 (define-public (set-crowdfunding-module (new-module principal))
   (begin
     ;; Only admin can set crowdfunding module
@@ -94,7 +95,7 @@
   )
 )
 
-;; Public function to set the rewards module address
+;; Public function to dynamically set the rewards module address
 (define-public (set-rewards-module (new-module principal))
   (begin
     ;; Only admin can set rewards module
@@ -105,7 +106,7 @@
   )
 )
 
-;; Public function to set the escrow module address
+;; Public function to dynamically set the escrow module address
 (define-public (set-escrow-module (new-module principal))
   (begin
     ;; Only admin can set escrow module

@@ -65,7 +65,6 @@
 (define-public (award-campaign-reward (campaign-id uint) (new-contributor principal) (new-reward-tier uint) (new-reward-desc (string-ascii 150)))
   (let
     (
-     
       ;; Fetch the campaign details from the crowdfunding module
       (campaign (unwrap! (contract-call? (var-get crowdfunding-contract) get-campaign campaign-id) ERR-CAMPAIGN-NOT-FOUND))
 
@@ -84,28 +83,27 @@
       ;; Calculate new-total-minting-fees
       (new-total-minting-fees (+ current-total-minting-fees REWARD-MINTING-FEE))
 
-    ;; Track contributor-token-id to unwrapped mintng details of exact contributor's token 
+      ;; Track contributor-token-id to unwrapped minting details of exact contributor's token 
       (contributor-token-id (unwrap! (contract-call? (var-get rewards-contract) mint new-contributor campaign-id new-reward-tier new-reward-desc) 
             ERR-REWARD-MINT-FAILED))
 
 
     )
-    ;; Ensure that the caller is the owner of the campaign
-    (asserts! (is-eq tx-sender current-owner) ERR-NOT-AUTHORIZED)
+      ;; Ensure that the caller is the owner of the campaign
+      (asserts! (is-eq tx-sender current-owner) ERR-NOT-AUTHORIZED)
     
-    ;; Ensure that the reward tier is within valid range
-    (asserts! (and (> new-reward-tier u0) (<= new-reward-tier current-reward-tiers)) ERR-INVALID-REWARD-TIER)
+      ;; Ensure that the reward tier is within valid range
+      (asserts! (and (> new-reward-tier u0) (<= new-reward-tier current-reward-tiers)) ERR-INVALID-REWARD-TIER)
     
-    ;; Collect minting fee from caller and send to the core contract
-    (unwrap! (stx-transfer? REWARD-MINTING-FEE tx-sender authorized-core-contract) ERR-TRANSFER-FAILED)
+      ;; Collect minting fee from caller and send to the core contract
+      (unwrap! (stx-transfer? REWARD-MINTING-FEE tx-sender authorized-core-contract) ERR-TRANSFER-FAILED)
     
-    ;; Update the total minting fees counter
-    (var-set total-minting-fees new-total-minting-fees)
+      ;; Update the total minting fees counter
+      (var-set total-minting-fees new-total-minting-fees)
 
       
-    ;; Save the contributor's reward details in the map
-      (map-set contributor-rewards { campaign-id: campaign-id, contributor: new-contributor }
-        {
+      ;; Save the contributor's reward details in the map
+      (map-set contributor-rewards { campaign-id: campaign-id, contributor: new-contributor } {
           tier: new-reward-tier,
           description: new-reward-desc,
           token-id: (some contributor-token-id)
@@ -125,7 +123,7 @@
       (campaign (unwrap! (contract-call? (var-get crowdfunding-contract) get-campaign campaign-id) ERR-CAMPAIGN-NOT-FOUND))
 
       ;; get owner of campaign
-      (current-owner (get owner campaign))
+      (current-owner (get owner campaign)) 
 
       ;; Get core-contract
       (authorized-core-contract (var-get core-contract))
@@ -147,20 +145,20 @@
                       ERR-REWARD-MINT-FAILED))
 
     )
-    ;; Validate caller is the campaign owner
-    (asserts! (is-eq tx-sender current-owner) ERR-NOT-AUTHORIZED)
+      ;; Validate caller is the campaign owner
+      (asserts! (is-eq tx-sender current-owner) ERR-NOT-AUTHORIZED)
     
-    ;; Ensure input lists (contributors, tiers, descriptions) are the same length
-    (asserts! (and 
-               (is-eq contributors-count (len reward-tiers)) 
-               (is-eq contributors-count (len reward-descriptions)))
+      ;; Ensure input lists (contributors, tiers, descriptions) are the same length
+      (asserts! (and 
+                  (is-eq contributors-count (len reward-tiers)) 
+                  (is-eq contributors-count (len reward-descriptions)))
              ERR-LISTS-UNEQUAL-LENGTH)
     
-    ;; Collect total minting fees
-    (unwrap! (stx-transfer? total-batch-minting-fee tx-sender authorized-core-contract) ERR-TRANSFER-FAILED)
+      ;; Collect total minting fees
+      (unwrap! (stx-transfer? total-batch-minting-fee tx-sender authorized-core-contract) ERR-TRANSFER-FAILED)
     
-    ;; Update total collected fees
-    (var-set total-minting-fees new-batch-total-minting-fees)
+      ;; Update total collected fees
+      (var-set total-minting-fees new-batch-total-minting-fees)
     
       ;; Note: This simple version does not store individual token IDs for batch mints
       (ok mint-result)

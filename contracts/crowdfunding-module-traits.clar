@@ -5,7 +5,8 @@
   (
     ;; Create a new campaign
      ;; parameters: 
-        ;; project-description - (string-ascii 500); campaign-id - uint funding goal - uint; duration - uint;  reward-tiers-count - uint; (string-ascii 150) - reward-description
+        ;; project-description - (string-ascii 500); campaign-id - uint 
+        ;; funding goal - uint; duration - uint;  reward-tiers-count - uint; reward-description -(string-ascii 150) 
     (create-campaign ((string-ascii 500) uint uint uint uint) (response uint uint))
     
     ;; Contribute funds to a campaign
