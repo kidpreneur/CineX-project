@@ -111,8 +111,9 @@
 
 ;; Helper function for batch minting
 (define-private (process-mint (recipient principal) (result {token-id: uint, success: bool, count: uint, index: uint, reward-tiers: (list 50 uint), reward-descriptions: (list 50 (string-ascii 150)), campaign-id: uint}))
-    (if (not (get success result)) 
-        result
+    (if (not (get success result)) ;; if minting process success fails (not successful)
+        result ;; return the failed result
+        ;; else, if it is successful, evaluate the process
         (let
             (
                 ;; Get the current token ID from our accumulator
@@ -152,26 +153,28 @@
                     campaign-id: campaign-id}))
                 (mint-result (nft-mint? CineX-rewards token-id recipient))
             )
-            (if (is-ok mint-result)
-                (begin
-                    (map-set token-metadata token-id {
-                        campaign-id: (get campaign-id result),
-                        reward-tier: reward-tier, 
-                        reward-tier-description: reward-desc,
-                        contributor: recipient
-                    })
+                (if (is-ok mint-result) ;; if response-value of mint-result is `ok`, return `true`
+                        (begin
+                            ;; then process the reward meta-data for the contributor
+                            (map-set token-metadata token-id {
+                                campaign-id: (get campaign-id result),
+                                reward-tier: reward-tier, ;; index of reward tier that corresponds with the contributor
+                                reward-tier-description: reward-desc, ;; index of reward-description of index of reward-tier that corresponds with the contributor
+                                contributor: recipient
+                                })
                     
-                    {
-                        token-id: next-token-id, 
-                        success: true, 
-                        count: next-count,
-                        index: next-index,
-                        reward-tiers: reward-tiers,
-                        reward-descriptions: reward-descriptions,
-                        campaign-id: campaign-id
-                    }
-                )
-                {token-id: token-id, success: false, count: counts, index: index, reward-tiers: reward-tiers, reward-descriptions: reward-descriptions, campaign-id: campaign-id}
+                            {
+                                ;; return the result 
+                                token-id: next-token-id, 
+                                success: true, 
+                                count: next-count,
+                                index: next-index,
+                                reward-tiers: reward-tiers,
+                                reward-descriptions: reward-descriptions,
+                                campaign-id: campaign-id
+                            }
+                        )
+                            {token-id: token-id, success: false, count: counts, index: index, reward-tiers: reward-tiers, reward-descriptions: reward-descriptions, campaign-id: campaign-id}
             )
         )
     )
@@ -186,11 +189,11 @@
 
             ;; Get the current token ID counter
             (current-token-id (var-get last-token-id))
-            ;; Process the batch by folding over the recipients list only
-
+            
             ;; Get authorized-minter 
             (current-authorized-minter (var-get authorized-minter))
 
+            ;; Process the batch by folding over the recipients list only
             (mint-result (fold process-mint recipients {
                 token-id: current-token-id, 
                 success: true, 
@@ -201,32 +204,31 @@
                 campaign-id: campaign-id
             }))
         )
-        ;; Authorization check
-        (asserts! (or (is-eq tx-sender CONTRACT-OWNER) (is-eq tx-sender current-authorized-minter)) ERR-NOT-AUTHORIZED)
+            ;; Authorization check
+            (asserts! (or (is-eq tx-sender CONTRACT-OWNER) (is-eq tx-sender current-authorized-minter)) ERR-NOT-AUTHORIZED)
 
-        ;; Validate batch size, making sure the batch size is not more than 50 
-        (asserts! (and (> batch-size u0) (<= batch-size u50)) ERR-INVALID-BATCH-SIZE)
+            ;; Validate batch size, making sure the batch size is not more than 50 
+            (asserts! (and (> batch-size u0) (<= batch-size u50)) ERR-INVALID-BATCH-SIZE)
         
-        ;; Check equal lengths
-         ;; Every recipient should have a reward tier and description matching the len of the batch
-        (asserts! (and (is-eq batch-size (len reward-tiers)) (is-eq batch-size (len reward-descriptions))) ERR-INVALID-BATCH-SIZE)
+            ;; Check equal lengths
+            ;; Every recipient should have a reward tier and description matching the len of the batch
+            (asserts! (and (is-eq batch-size (len reward-tiers)) (is-eq batch-size (len reward-descriptions))) ERR-INVALID-BATCH-SIZE)
     
-        ;; Supply check
-        (asserts! (<= (+ current-token-id batch-size) COLLECTION-MAX-SUPPLY) ERR-SUPPLY-EXCEEDED)
+            ;; Supply check
+            (asserts! (<= (+ current-token-id batch-size) COLLECTION-MAX-SUPPLY) ERR-SUPPLY-EXCEEDED)
 
-         ;; Update the token ID counter
-        (var-set last-token-id (+ current-token-id batch-size))
+            ;; Update the token ID counter
+            (var-set last-token-id (+ current-token-id batch-size))
         
-        ;; Return success or error based on the final result
-        (if (get success mint-result)
-            ;; If successful, return OK with count - number of tokens minted
-            (ok (get count mint-result))
-            ;; If any mint failed, return an error
-            ERR-BATCH-MINT-FAILED
-        )
+            ;; Return success or error based on the final result
+            (if (get success mint-result)
+                ;; If successful, return OK with count - number of tokens minted
+                (ok (get count mint-result))
+                ;; If any mint failed, return an error
+                ERR-BATCH-MINT-FAILED
+            )
     )
 )
-
 
 ;; Transfer function with ownership check
 (define-public (transfer (token-id uint) (sender principal) (recipient principal))

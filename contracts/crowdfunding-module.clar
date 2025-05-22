@@ -1,6 +1,6 @@
 ;; title: crowdfunding-module
 ;; version: 1.0.0
-;; implements: .crowdfunding-module-trait.crowdfunding-trait
+;; implements: .crowdfunding-module-traits.crowdfunding-trait
 
 ;; Implementing the crowdfunding trait (interface) to follow expected rules
 (impl-trait .crowdfunding-module-traits.crowdfunding-trait) 
@@ -77,7 +77,7 @@
 (define-map campaign-contributions { campaign-id: uint, contributor: principal } {
   total-contributed: uint, ;; Total amount this user gave
   contributions-count: uint, ;; Number of times they contributed
-  last-contribution-at: uint ;; When they last contributed
+  last-contribution-at: uint ;; When they last contributed (block-height)
 })
 
 ;; Tracks all fees collected by the platform
@@ -96,7 +96,7 @@
       ;; Set new campaign ID by adding 1 to the current counter
       (next-unique-campaign-id (+ current-unique-campaign-id u1)) 
       
-      (effective-duration (if (> duration u0) ;; If campaign creator inputs a custom duration, i.e, anything > zero, 
+      (effective-duration (if (> duration u0) ;; If campaign creator inputs a custom `duration` variable, i.e, anything > zero, 
                                 duration ;; let it pass
                                 DEFAULT-CAMPAIGN-DURATION ;; else, use DEFAULT-CAMPAIGN-DURATION 12960  
                           )
@@ -175,30 +175,30 @@
 
     )
     
-    ;; Make sure campaign is active
-    (asserts! (get is-active campaign) ERR-CAMPAIGN-INACTIVE)
+      ;; Make sure campaign is active
+      (asserts! (get is-active campaign) ERR-CAMPAIGN-INACTIVE)
     
-    ;; Make sure contribution amount is high enough
-    (asserts! (>= amount MINIMUM-CONTRIBUTION) ERR-INVALID-AMOUNT)
+      ;; Make sure contribution amount is high enough
+      (asserts! (>= amount MINIMUM-CONTRIBUTION) ERR-INVALID-AMOUNT)
     
-    ;; Move funds into escrow (secure temporary storage)
-    (unwrap! (contract-call? (var-get escrow-contract) deposit-to-campaign campaign-id amount) ERR-TRANSFER-FAILED)
+      ;; Move funds into escrow (secure temporary storage)
+      (unwrap! (contract-call? (var-get escrow-contract) deposit-to-campaign campaign-id amount) ERR-TRANSFER-FAILED)
     
-    ;; Increase campaign's total raised amount
-    (map-set campaigns campaign-id 
-      (merge 
-        campaign 
-        { total-raised: new-total-raised }
+      ;; Increase campaign's total raised amount
+      (map-set campaigns campaign-id 
+        (merge 
+          campaign 
+            { total-raised: new-total-raised }
+        )
       )
-    )
-    ;; Update record of contributor
-    (map-set campaign-contributions { campaign-id: campaign-id, contributor: tx-sender } {
+      ;; Update record of contributor
+      (map-set campaign-contributions { campaign-id: campaign-id, contributor: tx-sender } {
         total-contributed: new-total-contributed,
         contributions-count: new-count,
         last-contribution-at: block-height
       })
     
-    (ok true)
+      (ok true)
   )
 )
 
@@ -231,38 +231,38 @@
 
     )
     
-    ;; Make sure the person claiming is the owner
-    (asserts! (is-eq tx-sender current-owner) ERR-NOT-AUTHORIZED)
+      ;; Make sure the person claiming is the owner
+      (asserts! (is-eq tx-sender current-owner) ERR-NOT-AUTHORIZED)
     
-    ;; Ensure campaign is still active
-    (asserts! (get is-active campaign) ERR-CAMPAIGN-INACTIVE)
+      ;; Ensure campaign is still active
+      (asserts! (get is-active campaign) ERR-CAMPAIGN-INACTIVE)
     
-    ;; Make sure funds have not been claimed already
-    (asserts! (not (get funds-claimed campaign)) ERR-ALREADY-CLAIMED)
+      ;; Make sure funds have not been claimed already
+      (asserts! (not (get funds-claimed campaign)) ERR-ALREADY-CLAIMED)
     
-    ;; Only allow claim if funding goal was reached
-    (asserts! (>= current-total-raised current-funding-goal) ERR-FUNDING-GOAL-NOT-REACHED)
+      ;; Only allow claim if funding goal was reached
+      (asserts! (>= current-total-raised current-funding-goal) ERR-FUNDING-GOAL-NOT-REACHED)
     
-    ;; Mark campaign as completed
-    (map-set campaigns campaign-id 
-      (merge 
-        campaign 
-        { 
-          funds-claimed: true,
-          is-active: false
-        })
-    )
+      ;; Mark campaign as completed
+      (map-set campaigns campaign-id 
+        (merge 
+          campaign 
+          { 
+            funds-claimed: true,
+            is-active: false
+          })
+      )
     
-    ;; Withdraw the earned funds minus fees
-    (unwrap! (contract-call? (var-get escrow-contract) withdraw-from-campaign campaign-id withdraw-amount) ERR-TRANSFER-FAILED)
+      ;; Withdraw the earned funds minus fees
+      (unwrap! (contract-call? (var-get escrow-contract) withdraw-from-campaign campaign-id withdraw-amount) ERR-TRANSFER-FAILED)
      
-    ;; Transfer platform's fee   
-    (unwrap! (contract-call? (var-get escrow-contract) collect-campaign-fee campaign-id fee-amount tx-sender) ERR-TRANSFER-FAILED)
+      ;; Transfer platform's fee   
+      (unwrap! (contract-call? (var-get escrow-contract) collect-campaign-fee campaign-id fee-amount tx-sender) ERR-TRANSFER-FAILED)
     
-    ;; Track the collected fee
-    (var-set total-fees-collected new-collected-fee)
+      ;; Track the collected fee
+      (var-set total-fees-collected new-collected-fee)
     
-    (ok true)
+      (ok true)
   )
 )
 
