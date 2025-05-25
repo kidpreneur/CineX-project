@@ -24,7 +24,7 @@
                 ;;   project-name - (string-ascii 100) name of previous project
                 ;;   project-url - (string-ascii 255) link to previous project
                 ;;   project-description - (string-ascii 500) brief description of project
-                ;;   completion-year - uint year project was completed
+                ;;   project-completion-year - uint year project was completed
         (add-filmmaker-portfolio (principal (string-ascii 100) (string-ascii 255) (string-ascii 500) uint) (response uint uint))
 
     
@@ -42,7 +42,7 @@
         ;; @params:
             ;;   filmmaker-principal - principal of the filmmaker
             ;;   endorser-name - (string-ascii 100) name of endorsing entity
-            ;;   endorsement-text - (string-ascii 255) brief endorsement
+            ;;   endorsement-letter - (string-ascii 255) brief endorsement
             ;;   endorsement-url - (string-ascii 255) verification link for endorsement
         (add-filmmaker-endorsement (principal (string-ascii 100) (string-ascii 255)) (response uint uint))
 
