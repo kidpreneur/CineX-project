@@ -15,28 +15,27 @@
 ;; Define error codes for better debugging and user feedback
 (define-constant ERR-NOT-AUTHORIZED (err 1001))
 (define-constant ERR-FILMMAKER-NOT-FOUND (err 1002))
-(define-constant ERR-INVALID-INPUT (err 1003))
+(define-constant ERR-INVALID-VERIFICATION-LEVEL-INPUT (err 1003))
 (define-constant ERR-ALREADY-REGISTERED (err 1004))
 (define-constant ERR-PORTFOLIO-NOT-FOUND (err 1005))
 (define-constant ERR-ENDORSEMENT-NOT-FOUND (err 1006))
 (define-constant ERR-VERIFICATION-EXPIRED (err 1007))
+(define-constant ERR-TRANSFER (err 1008))
+
 
 ;; ========== CONSTANTS ==========
-;; Define verification levels 
-(define-constant basic-verification u1) ;; level u1
-(define-constant standard-verification u2) ;; level u2
-(define-constant premium-verification u3) ;; level u3
+;; Define list of verification levels  
+(define-constant basic-verification-level u1)
+(define-constant standard-verification-level u2)
 
-;; Define verification fees (in microSTX)
-(define-constant basic-verification-fee u1000000) ;; 1 STX 
-(define-constant standard-verification-fee u5000000) ;; 5 STX
-(define-constant premium-verification-fee u10000000) ;; 10 STX
+;; Define verification fees (in microSTX) 
+(define-constant basic-verification-fee u2000000);; 2 STX 
+(define-constant standard-verification-fee u3000000) ;; 3 STX
+
 
 ;; Verified-id valid period (in blocks, approximately 1 year, i.e, u52560 blocks) 
-    ;; (WHAT IF we make different valid periods of 1year, 2 years,and 3 years as the value for each verification )
 (define-constant basic-verified-id-valid-period u52560) ;; level 1 verification validity
 (define-constant standard-verified-id-valid-period (* u52560 u2)) ;; level 2 verification validity
-(define-constant premium-verified-id-valid-period (* u52560 u3)) ;; level 3 verification validity
 
 ;; ========== DATA VARIABLES ==========
 ;; Store the contract administrator who can verify filmmakers
@@ -93,22 +92,20 @@
 (define-map filmmaker-endorsement-counts principal uint)
 
 ;; ========== PRIVATE FUNCTIONS =========
+;; Helper to validate if a filmmaker is registered
+(define-private (is-registered (filmmaker principal))
+  (is-some (map-get? filmmaker-identities filmmaker))
+)
+
 ;; Helper to check if caller is admin
 (define-private (is-admin) 
     (is-eq tx-sender (var-get contract-admin))
 )
 
-;; Helper to validate if a filmmaker is registered
-(define-read-only (is-registered (new-filmmaker principal)) 
-    (is-some (map-get? filmmaker-identities new-filmmaker))
-)
-
-
-
 ;; ========== PUBLIC FUNCTIONS ==========
 ;; Function to register a filmmaker's identity
     ;; Strategic Purpose: Establish the foundation for filmmakers to register ther identity for verification
-(define-public (register-filmmaker-id (new-filmmaker principal) (new-full-name (string-ascii 100)) (new-profile-url (string-ascii 255)) (new-identity-hash (buff 32))) 
+(define-public (register-filmmaker-id (new-filmmaker principal) (new-full-name (string-ascii 100)) (new-profile-url (string-ascii 255)) (new-identity-hash (buff 32)) (choice-verification-level uint) (choice-verification-level-expiration uint)) 
     (let 
         (
             ;; existing total registered filmmakers and new total registred filmmakers respectively
@@ -119,8 +116,8 @@
             (is-filmmaker-registered (is-registered new-filmmaker))
                  
         ) 
-         ;; Ensure the caller is the filmmaker being registered
-         (asserts! (is-eq new-filmmaker tx-sender) ERR-NOT-AUTHORIZED)
+        ;; Ensure the caller is the filmmaker being registered
+        (asserts! (is-eq new-filmmaker tx-sender) ERR-NOT-AUTHORIZED)
 
         ;; Ensure the filmmaker is not already registered
         (asserts! (not is-filmmaker-registered) ERR-ALREADY-REGISTERED)
@@ -130,8 +127,8 @@
             full-name: new-full-name, 
             profile-url: new-profile-url, 
             identity-hash: new-identity-hash, 
-            verification-level: u0, ;; not initially verified 
-            verification-expiration: u0, ;; no expiration initially,sinceno initial verification level is attained validity period of verification level
+            verification-level: choice-verification-level, ;; filmmaker chooses what level of verification level they would want to opt for 
+            verification-expiration: choice-verification-level-expiration, ;; filmmaker inputs default expiration period of their choice verification level 
             verified: false, ;; Typically false since filmmaker's identity is yet to be verified
             registration-time: block-height
         })
@@ -186,8 +183,73 @@
         ;; Update filmmaker portfolio count
         (ok (map-set filmmaker-portfolio-counts new-added-filmmaker new-filmmaker-counts))
     )
-
 )
 
 ;; Function to verify a filmmaker (admin only)
     ;; Strategic Purpose: Provide platform-level verification of identity
+            ;; @params:
+                ;;   filmmaker-principal - principal of the filmmaker
+                ;;   verification-level - uint level of verification (1-basic, 2-standard, 3-premium)
+                ;;   expiration-block - uint block height when verification expires
+(define-public (verify-filmmaker-identity (new-added-filmmaker principal) (new-verificaion-level uint) (new-expiration-block uint)) 
+    (let 
+        (
+            ;; Get filmmaker data
+            (existing-filmmaker-data (unwrap! (map-get? filmmaker-identities new-added-filmmaker) ERR-FILMMAKER-NOT-FOUND))
+
+            ;; Get verification-level-data and verification expiration data
+            (existing-choice-verification-level-data (get verification-level existing-filmmaker-data))
+            (exisitng-choice-ver-level-expiration (get verification-expiration existing-filmmaker-data))
+
+            ;; Get core contract
+            (current-core-contract (var-get core-contract))
+
+            ;; Get current total fees; then calculate both new-total-basic-verification-fee-collected and new-total-standard-verification-fee-collected respectively 
+            (current-total-verification-fee (var-get total-verification-fee-collected))
+            (new-total-basic-verification-fee-collected (+ basic-verification-fee current-total-verification-fee))
+            (new-total-standard-verification-fee-collected (+ standard-verification-fee current-total-verification-fee))
+        
+        ) 
+        ;; Ensure caller is admin
+        (asserts! (is-admin) ERR-NOT-AUTHORIZED)
+
+        ;; Ensure filmmaker exists
+        ;; (asserts! (is-some existing-filmmaker-data) ERR-FILMMAKER-NOT-FOUND)
+
+        ;; Ensure existing verification level data 
+        (if (is-eq existing-choice-verification-level-data basic-verification-level) 
+                (begin 
+                    ;; Collect basic verification fee from filmmaker
+                    (unwrap! (stx-transfer? basic-verification-fee new-added-filmmaker current-core-contract) ERR-TRANSFER) 
+                    ;; Update total fees collected
+                    (var-set total-verification-fee-collected new-total-basic-verification-fee-collected)
+                    ;; Update filmmaker verification status
+                    (map-set filmmaker-identities new-added-filmmaker
+                        (merge existing-filmmaker-data
+                            { 
+                                verified: true,
+                                registration-time: block-height 
+                            }
+                        )
+                    )
+                    (ok true)
+                )
+                (begin 
+                    ;; Collect standard verification fee from filmmaker
+                    (unwrap! (stx-transfer? standard-verification-fee new-added-filmmaker current-core-contract) ERR-TRANSFER) 
+                    ;; Update total fees collected
+                    (var-set total-verification-fee-collected new-total-standard-verification-fee-collected)
+                    ;; Update filmmaker verification status
+                    (map-set filmmaker-identities  new-added-filmmaker 
+                        (merge existing-filmmaker-data 
+                            { 
+                                verified: true,
+                                registration-time: block-height
+                            }
+                        )
+                    )   
+                    (ok true)     
+                )              
+        )      
+    )
+)
