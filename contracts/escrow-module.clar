@@ -1,6 +1,15 @@
 ;; Title: escrow-module
 ;; Version: 1.0.0
 ;; Summary: Escrow Module for Secure Fund Management of campaign funds
+;; Author: Victor Omenai 
+;; Created: 2025
+;; version: 1.0.0
+
+;;;; ============= Description ==============
+;; Implementation of Escrow module trait
+;; Strategic Purpose: Secures and manages campaign funds
+;; This addresses the "Key Resources for delivering Value propostion" component of the Business Model Canvas of CineX
+
 
 ;; Import the escrow trait interface to ensure the contract implements required functions
 (impl-trait .escrow-module-trait.escrow-trait)

@@ -1,9 +1,16 @@
 
 ;; title: CineX-rewards-sip09
+;; Author: Victor Omenai 
+;; Created: 2025
 
 ;; version: 1.0.0
 ;; summary: NFT token representing tiers of privileges & rewards for filmmakers to reward contributors
-;; description: SIP-09 compliant NFT for the CineX platform's reward system
+
+;;;; ============= Description ==============
+;; Implementation of SIP-09 compliant NFT for the CineX platform's reward system
+;; Strategic Purpose: Standardize and Implements technical rewards infrastructure
+;; This addresses the "Key Activities - to deliver the value proposition to backers as customers" component of the Business Model Canvas 
+;; of CineX
 
 (impl-trait 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait.nft-trait)
 

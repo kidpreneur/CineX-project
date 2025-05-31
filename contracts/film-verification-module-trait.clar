@@ -1,6 +1,9 @@
 
 ;; title: film-verification-module-trait
 ;; version: 1.0.0
+;; Author: Victor Omenai 
+;; Created: 2025
+
 ;; 
 ;; Description: This trait defines the standard interface for the Film Verification Module
 ;; Strategic purpose: Build trust between backers and filmmakers through filmmaker identity verification
@@ -44,7 +47,7 @@
             ;;   endorser-name - (string-ascii 100) name of endorsing entity
             ;;   endorsement-letter - (string-ascii 255) brief endorsement
             ;;   endorsement-url - (string-ascii 255) verification link for endorsement
-        (add-filmmaker-endorsement (principal (string-ascii 100) (string-ascii 255)) (response uint uint))
+        (add-filmmaker-endorsement (principal (string-ascii 100) (string-ascii 255) (string-ascii 255))  (response uint uint))
 
         
     ;; Function to get all verification data for a filmmaker

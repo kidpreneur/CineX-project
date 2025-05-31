@@ -1,6 +1,8 @@
 
 ;; title: rewards-nft-trait;; title: rewards-nft-trait
 ;; version: 1.0.0
+;; Author: Victor Omenai 
+;; Created: 2025
 
 ;; Import the standard NFT trait
 (use-trait standard-nft-trait 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait.nft-trait)

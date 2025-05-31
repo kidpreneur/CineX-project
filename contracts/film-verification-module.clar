@@ -1,11 +1,12 @@
 ;; title: film-verification-module
+;; Author: Victor Omenai 
+;; Created: 2025
+;; version: 1.0.0
 
 ;;;; ============= Description ==============
 ;; Implementation of Film verification module trait
 ;; Strategic Purpose: Build trust between backers and filmmakers through identity verification
 ;; This addresses the "Customer Relationships" component of the Business Model Canvas of CineX
-
-;; Author: Victor Omenai 
 
 ;; ========== TRAIT REFERENCE ==========
 ;; Implementing the film-verification trait to ensure standard interface
@@ -40,6 +41,9 @@
 ;; ========== DATA VARIABLES ==========
 ;; Store the contract administrator who can verify filmmakers
 (define-data-var contract-admin principal tx-sender)
+
+;; Store the address of any third-party endorser
+(define-data-var third-party-endorser principal tx-sender)
 
 ;; Store the main hub contract reference
 (define-data-var core-contract principal tx-sender)
@@ -102,6 +106,16 @@
     (is-eq tx-sender (var-get contract-admin))
 )
 
+;; Helper to check if contract-caller of add-endorsement func is a third-party endorser 
+(define-private (is-endorser)
+    (is-eq tx-sender (var-get third-party-endorser))
+) 
+
+;; Helper to check endorsement count
+(define-private (get-endorsement-count (new-filmmaker principal)) 
+    (default-to u0 (map-get? filmmaker-endorsement-counts new-filmmaker))
+)
+
 ;; ========== PUBLIC FUNCTIONS ==========
 ;; Function to register a filmmaker's identity
     ;; Strategic Purpose: Establish the foundation for filmmakers to register ther identity for verification
@@ -162,8 +176,9 @@
             (new-total-filmmaker-portfolio-counts (+ u1 existing-total-filmmaker-portfolio-counts)) 
         ) 
         ;; Ensure the caller is the filmmaker or admin
-        (asserts! (or (is-eq tx-sender new-added-filmmaker) (is-admin)) ERR-NOT-AUTHORIZED)     
-         ;; Ensure filmmaker is registered
+        (asserts! (or (is-eq tx-sender new-added-filmmaker) (is-admin)) ERR-NOT-AUTHORIZED)  
+
+        ;; Ensure filmmaker is registered
         (asserts! is-filmmaker-registered ERR-FILMMAKER-NOT-FOUND)
 
         ;; Store the portfolio item
@@ -213,9 +228,6 @@
         ;; Ensure caller is admin
         (asserts! (is-admin) ERR-NOT-AUTHORIZED)
 
-        ;; Ensure filmmaker exists
-        ;; (asserts! (is-some existing-filmmaker-data) ERR-FILMMAKER-NOT-FOUND)
-
         ;; Ensure existing verification level data 
         (if (is-eq existing-choice-verification-level-data basic-verification-level) 
                 (begin 
@@ -251,5 +263,73 @@
                     (ok true)     
                 )              
         )      
+    )
+)
+
+;; Function to add third-party endorsements for a filmmaker
+    ;; Strategic Purpose: Enhance trust through industry recognition
+        ;; @params:
+            ;;   filmmaker-principal - principal of the filmmaker
+            ;;   endorser-name - (string-ascii 100) name of endorsing entity
+            ;;   endorsement-letter - (string-ascii 255) brief endorsement
+            ;;   endorsement-url - (string-ascii 255) verification link for endorsement
+ (define-public (add-filmmaker-endorsement (new-added-filmmaker principal) (new-endorser-name (string-ascii 100)) (new-endorsement-letter (string-ascii 255)) (new-endorsement-url (string-ascii 255)))
+    (let 
+        (
+            ;; Get current endorsement count and Calculate new endorsement count
+            (current-endorsement-count (get-endorsement-count new-added-filmmaker))  
+            ;; Calculate new endorsement count
+            (new-endorsement-count (+ u1 current-endorsement-count))
+
+            ;; check if new-filmmaker is registered (as input) in the read-only func
+            (is-filmmaker-registered (is-registered new-added-filmmaker))
+            
+        )
+        
+         ;; Ensure the caller is the filmmaker, admin, or from an approved endorser
+         (asserts! (or (is-eq tx-sender new-added-filmmaker) (is-admin) (is-endorser)) ERR-NOT-AUTHORIZED)
+
+        ;; Ensure filmmaker is registered
+        (asserts! is-filmmaker-registered ERR-FILMMAKER-NOT-FOUND)
+
+        ;; Store the endorsement
+        (map-set filmmaker-endorsements { filmmaker: new-added-filmmaker, endorsement-id: new-endorsement-count } { 
+            endorser-name: new-endorser-name, 
+            endorsement-letter: new-endorsement-letter, 
+            endorsement-url: new-endorsement-url,  
+            added-at-time: block-height 
+        })
+                      
+        ;; Update endorsement count
+        (map-set filmmaker-endorsement-counts new-added-filmmaker new-endorsement-count)
+
+        ;; Return result as new endorsement count
+        (ok new-endorsement-count)
+    )
+    )
+    
+;; ========== ADMIN FUNCTIONS ==========
+;; Function to set the contract administrator
+(define-public (set-contract-admin (new-admin principal)) 
+    (begin 
+        (asserts! (is-admin) ERR-NOT-AUTHORIZED)
+        (ok (var-set contract-admin new-admin))
+    )
+)
+
+;; Function to set the core contract
+(define-public (set-core-contract (new-core principal)) 
+    (begin 
+        (asserts! (is-admin) ERR-NOT-AUTHORIZED)
+        (ok (var-set core-contract new-core))
+    )
+)
+
+;; ========== THIRD-PARTY FUNCTION ==========
+;; Function to enable contract-admin set optional third-party endorsers
+(define-public (set-third-party-endorser (new-endorser principal)) 
+    (begin 
+        (asserts! (is-admin) ERR-NOT-AUTHORIZED)
+        (ok (var-set third-party-endorser new-endorser))
     )
 )

@@ -1,5 +1,10 @@
 ;; title: crowdfunding-module-trait
 ;; version: 1.0.0
+;; Author: Victor Omenai 
+;; Created: 2025
+
+;; Strategic Purpose: Define the "Revenue Streams & Customer Relationships" component interface of the Business Model Canvas of CineX
+;; This trait ensures campaign processes and backer interactions are well handled 
 
 (define-trait crowdfunding-trait
   (
