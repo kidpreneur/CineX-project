@@ -1,6 +1,14 @@
 ;; title: crowdfunding-module
 ;; version: 1.0.0
 ;; implements: .crowdfunding-module-traits.crowdfunding-trait
+;; Author: Victor Omenai 
+;; Created: 2025
+
+;;;; ============= Description ==============
+;; Implementation of Crowdfunding module trait
+;; Strategic Purpose: Standardize campaign processes as backers interact with the system, contributing funds
+;; This addresses the "Revenue Streams & Customer Relationships" component of the Business Model Canvas of CineX
+
 
 ;; Implementing the crowdfunding trait (interface) to follow expected rules
 (impl-trait .crowdfunding-module-traits.crowdfunding-trait) 

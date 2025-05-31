@@ -37,6 +37,16 @@ path = 'contracts/escrow-module-trait.clar'
 clarity_version = 2
 epoch = 2.5
 
+[contracts.film-verification-module]
+path = 'contracts/film-verification-module.clar'
+clarity_version = 2
+epoch = 2.5
+
+[contracts.film-verification-module-trait]
+path = 'contracts/film-verification-module-trait.clar'
+clarity_version = 2
+epoch = 2.5
+
 [contracts.rewards-module]
 path = 'contracts/rewards-module.clar'
 clarity_version = 2

@@ -1,5 +1,8 @@
 ;; title: CineX 
 ;; version: 1.0.0 
+;; Author: Victor Omenai 
+;; Created: 2025
+
 ;; ========== Summary ==========
 ;;  Main Entry Point for all modules (crowdfunding, rewards, escrow) of the CineX film crowdfunding platform
 ;; => Acts as the center hub for the CineX platform.
@@ -9,7 +12,7 @@
 
 ;; ========== Description ==========
 ;; Decentralized crowdfunding platform for filmmakers, connecting them with supporters securely via blockchain.
-
+;; Strategic purpose: Main Hub that implements the "Key Partners" component of the Business Model Canvas of CineX
 
 
 

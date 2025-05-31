@@ -1,6 +1,7 @@
 ;; title: rewards-module
 ;; version: 1.0.0
-;; implements: .rewards-module-trait.rewards-trait
+;; Author: Victor Omenai 
+;; Created: 2025
 
 ;; ========= Summary ==========
 ;; This rewards-module acts like a "Reward Manager" 
@@ -10,10 +11,14 @@
 
 
 ;; ========= Description ==========
+;; Implementation of Rewards module trait
 ;; This Rewards Module in CineX handles the secure distribution of campaign rewards to contributors. It allows campaign owners to mint 
 ;; and assign NFT rewards based on contribution tiers, tracks each reward issued, and collects minting fees to support platform sustainability. 
 ;; The module ensures that rewards are properly authorized, recorded, and linked to the correct campaigns through direct interaction 
 ;; with the core CineX platform and a separate NFT rewards contract.
+
+;; Strategic Purpose: Manages backer incentives and value delivery
+;; This addresses the "Value Proposition component of the Business Model Canvas of CineX
 
 ;; Implements the Rewards Trait interface
 (impl-trait .rewards-module-trait.rewards-trait)
