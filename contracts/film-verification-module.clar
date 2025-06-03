@@ -143,7 +143,7 @@
                                         (asserts! (or (<= current-verification-expiration basic-verified-id-valid-period)
                                                     (<= current-verification-expiration standard-verified-id-valid-period)) ERR-NOT-VERIFIED) 
                                 
-                                        (ok verification-current)       
+                                        (ok true)       
                                      )
                                         
                 ;; else, return false
@@ -320,6 +320,7 @@
             ;; check if new-filmmaker is registered (as input) in the read-only func
             (is-filmmaker-registered (is-registered new-added-filmmaker))
             
+            
         )
         
          ;; Ensure the caller is the filmmaker, admin, or from an approved endorser
@@ -374,27 +375,43 @@
 
 
 ;; ========== READ-ONLY FUNCTIONS ==========
- ;; Function to get portfolio details for/of a filmmaker
-(define-read-only (get-portfolio-details (new-filmmaker principal) (new-id uint))
+ ;; Function to check if filmmaker has a portfolio 
+(define-read-only (is-portfolio-available (new-filmmaker principal) (new-id uint))
     (match (map-get? filmmaker-portfolios { filmmaker: new-filmmaker, portfolio-id: new-id })
-        portfolio-available (ok portfolio-available)
+        portfolio-available (ok true)
         ;; If not found, return error 
         ERR-PORTFOLIO-NOT-FOUND
     )
 )
 
-;; Function to check if filmmake's verification status is current, and not expired
+;; Function to check if filmmaker's verification status is current, and not expired
 (define-read-only (is-filmmaker-currently-verified (new-filmmaker principal))
   (is-verification-current new-filmmaker)
+  
 )
 
 ;; Function to check if filmmaker is endorsed
-(define-read-only (get-endorsement-details (new-filmmaker principal) (new-id uint))
+(define-read-only (is-endorsement-available (new-filmmaker principal) (new-id uint))
     (match (map-get? filmmaker-endorsements { filmmaker: new-filmmaker, endorsement-id: new-id })
-        endorsement-available (ok endorsement-available)
+        endorsement-available (ok true)
         ;; If not found, return error
         ERR-ENDORSEMENT-NOT-FOUND
      )
+)
+
+;; Function to get full details of filmmaker identity
+(define-read-only (get-filmmaker-identity (new-filmmaker principal)) 
+    (map-get? filmmaker-identities new-filmmaker)
+)
+
+;; Function to get full details of filmmaker portfolio
+(define-read-only (get-filmmaker-portfolio (new-filmmaker principal) (new-id uint)) 
+    (map-get? filmmaker-portfolios { filmmaker: new-filmmaker,  portfolio-id: new-id })
+)
+
+;; Function to get full details of filmmaker endorsement letter
+(define-read-only (get-filmmaker-endorsements (new-filmmaker principal) (new-id uint)) 
+    (map-get? filmmaker-endorsements { filmmaker: new-filmmaker, endorsement-id: new-id })
 )
 
 

@@ -49,5 +49,25 @@
             ;;   endorsement-url - (string-ascii 255) verification link for endorsement
         (add-filmmaker-endorsement (principal (string-ascii 100) (string-ascii 255) (string-ascii 255))  (response uint uint))
 
+    ;; Function to check if filmmaker has a portfolio 
+        ;; Strategic Purpose: Enhance credibility through accessible filmmography
+            ;; @params:
+                ;;   filmmaker-principal - principal of the filmmaker
+                ;;   portfolio ID - uint ID of existing portfolio
+        (is-portfolio-available (principal uint) (response bool uint))
+
+     ;; Function to check if filmmaker's identity is verified
+        ;; Strategic Purpose: Provides access to platform verification to secure trust between backers and filmmaker
+            ;; @params:
+                ;;   filmmaker-principal - principal of the filmmaker
+        (is-filmmaker-currently-verified (principal) (response bool uint))
+
+    ;; Function to check if filmmaker possesses industry recognition
+        ;; Strategic Purpose: Enhances credibility through letters of endorsements
+            ;; @params:
+                ;;   filmmaker-principal - principal of the filmmaker
+                ;;   portfolio ID - uint ID of existing portfolio    
+        (is-endorsement-available (principal uint) (response bool uint))
+  
     )
 )

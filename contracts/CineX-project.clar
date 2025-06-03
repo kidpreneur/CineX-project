@@ -17,6 +17,8 @@
 
 
 ;; ========== Import Traits (interfaces for modules) ==========
+;; Add verification module trait reference for integration into this main hub
+(use-trait hub-verification-module-trait .film-verification-module-trait.film-verification-trait)
 
 ;; Import NFT Reward Trait - used to interact with NFT reward contracts
 (use-trait hub-nft-token-trait 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait.nft-trait)
@@ -48,6 +50,8 @@
 (define-map admins principal bool)
 
 ;; ========== Module Reference Variables ==========
+;; Add variable to store address of Verification Module
+(define-data-var film-verification-module principal contract-owner)
 
 ;; Variable to store address of Crowdfunding Module
 (define-data-var crowdfunding-module principal contract-owner)
@@ -86,6 +90,16 @@
 )
 
 ;; ========== Module Management Functions ==========
+;; Public function to set the verification module address
+(define-public (set-film-verification-module (new-module principal))
+  (begin 
+    ;; Only admin can set crowdfunding module
+    (asserts! (is-eq tx-sender (var-get contract-admin)) ERR-NOT-AUTHORIZED)
+
+    ;; Update module address
+    (ok (var-set film-verification-module new-module))    
+  )
+)
 
 ;; Public function to dynamically set the crowdfunding module address
 (define-public (set-crowdfunding-module (new-module principal))
@@ -120,7 +134,30 @@
   )
 )
 
+;; ========== VERIFICATION INTEGRATION FUNCTIONS ==========
+;; Function to get filmmaker portfolio
+(define-public (check-is-portfolio-present (verification-module <hub-verification-module-trait>) (new-filmmaker principal) (new-id uint)) 
+  (contract-call? verification-module is-portfolio-available new-filmmaker new-id)
+)
+
+;; Function to check if a filmmaker is verified through the verification module
+(define-public (check-is-filmmaker-verified (verification-module <hub-verification-module-trait>) (new-filmmaker principal)) 
+  (contract-call? verification-module is-filmmaker-currently-verified new-filmmaker)
+)
+
+;; Function to get filmmaker verification 
+(define-public (check-endorsement-status (verification-module <hub-verification-module-trait>) (new-filmmaker principal) (new-id uint))
+  (contract-call? verification-module is-endorsement-available new-filmmaker new-id)
+)
+
+
+ 
+
 ;; ========== Module Accessor Functions ==========
+;; Read-only function to get thecurrent film verification module address
+(define-read-only (get-verification-module)
+  (var-get film-verification-module)
+)
 
 ;; Read-only function to get the current crowdfunding module address
 (define-read-only (get-crowdfunding-module)
@@ -144,6 +181,7 @@
   {
     crowdfunding-module: (var-get crowdfunding-module),
     rewards-module: (var-get rewards-module),
-    escrow-module: (var-get escrow-module)
+    escrow-module: (var-get escrow-module),
+    film-verification-module: (var-get film-verification-module)
   }
 )
