@@ -67,7 +67,7 @@
     full-name: (string-ascii 100), ;; full legal name
     profile-url: (string-ascii 255), ;; link to filmmaker's professional profile
     identity-hash: (buff 32), ;; hash of identity document
-    choice-verification-level: uint, ;; uint to track filmmaker as level 1, 2 or 3 verified
+    choice-verification-level: uint, ;; uint to track filmmaker as level 1 or 2 verified
     choice-verification-expiration: uint, ;; validity period of verification level
     verified: bool,
     registration-time: uint

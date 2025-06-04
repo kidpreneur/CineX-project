@@ -154,7 +154,7 @@
  
 
 ;; ========== Module Accessor Functions ==========
-;; Read-only function to get thecurrent film verification module address
+;; Read-only function to get the current film verification module address
 (define-read-only (get-verification-module)
   (var-get film-verification-module)
 )
