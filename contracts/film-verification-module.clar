@@ -447,7 +447,7 @@
 
 ;; Function to get the contract admin
 (define-read-only (get-contract-admin)
-    (var-get contract-admin)
+    (ok (var-get contract-admin))
 )
 
 

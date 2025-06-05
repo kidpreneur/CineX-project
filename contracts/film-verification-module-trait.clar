@@ -68,6 +68,16 @@
                 ;;   filmmaker-principal - principal of the filmmaker
                 ;;   portfolio ID - uint ID of existing portfolio    
         (is-endorsement-available (principal uint) (response bool uint))
+
+    ;; Function to get the contract admin
+        ;; Strategic Purpose: Allow external contracts to verify admin privileges within the film verification module
+            ;; @returns: principal of the contract administrator
+        (get-contract-admin () (response principal uint))
+    
   
     )
+
 )
+
+  
+
