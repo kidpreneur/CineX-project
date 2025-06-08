@@ -14,14 +14,15 @@
 
 ;; ========== ERROR CONSTANTS ==========
 ;; Define error codes for better debugging and user feedback
-(define-constant ERR-NOT-AUTHORIZED (err 1001))
-(define-constant ERR-FILMMAKER-NOT-FOUND (err 1002))
-(define-constant ERR-INVALID-VERIFICATION-LEVEL-INPUT (err 1003))
-(define-constant ERR-ALREADY-REGISTERED (err 1004))
-(define-constant ERR-PORTFOLIO-NOT-FOUND (err 1005))
-(define-constant ERR-ENDORSEMENT-NOT-FOUND (err 1006))
-(define-constant ERR-VERIFICATION-EXPIRED (err 1007))
-(define-constant ERR-TRANSFER (err 1008))
+(define-constant ERR-NOT-AUTHORIZED (err u1001))
+(define-constant ERR-FILMMAKER-NOT-FOUND (err u1002))
+(define-constant ERR-INVALID-VERIFICATION-LEVEL-INPUT (err u1003))
+(define-constant ERR-ALREADY-REGISTERED (err u1004))
+(define-constant ERR-PORTFOLIO-NOT-FOUND (err u1005))
+(define-constant ERR-ENDORSEMENT-NOT-FOUND (err u1006))
+(define-constant ERR-VERIFICATION-EXPIRED (err u1007))
+(define-constant ERR-TRANSFER (err u1008))
+(define-constant ERR-NOT-VERIFIED (err u1009 ))
 
 
 ;; ========== CONSTANTS ==========
@@ -60,14 +61,17 @@
 ;; Keep track of total registered endorsements for analytics 
 (define-data-var total-filmmaker-endorsement-counts uint u0) 
 
+;; Add data variable to store renewal extension contract reference
+(define-data-var renewal-extension-contract principal tx-sender)
+
 ;; ========== DATA MAPS ==========
 ;; Store filmmaker identity information
 (define-map filmmaker-identities principal { 
     full-name: (string-ascii 100), ;; full legal name
     profile-url: (string-ascii 255), ;; link to filmmaker's professional profile
     identity-hash: (buff 32), ;; hash of identity document
-    verification-level: uint, ;; uint to track filmmaker as level 1, 2 or 3 verified
-    verification-expiration: uint, ;; validity period of verification level
+    choice-verification-level: uint, ;; uint to track filmmaker as level 1 or 2 verified
+    choice-verification-expiration: uint, ;; validity period of verification level
     verified: bool,
     registration-time: uint
     })
@@ -116,10 +120,46 @@
     (default-to u0 (map-get? filmmaker-endorsement-counts new-filmmaker))
 )
 
+;; Helper to check if filmmaker is currently verfied
+(define-private (is-verification-current (new-added-filmmaker principal))
+     (let 
+            (
+                ;; Get filmmaker data
+                (existing-filmmaker-data (unwrap! (map-get? filmmaker-identities new-added-filmmaker) ERR-FILMMAKER-NOT-FOUND))
+                ;; get existing verified status
+                (verified-status (get verified existing-filmmaker-data))
+
+                ;; get current verificaton expiry period
+                (current-verification-expiration (get choice-verification-expiration existing-filmmaker-data))
+
+                ;; check if new-filmmaker is registered (as input) in the read-only func
+                (is-filmmaker-registered (is-registered new-added-filmmaker))
+                                            
+            )          
+            (match (map-get? filmmaker-identities new-added-filmmaker)
+                ;; bind result to verification-current
+                verification-current (begin
+                                        ;; check that verified is true
+                                        (asserts! (is-eq  verified-status true) ERR-NOT-VERIFIED)
+
+                                        ;; check that verification expiration is <= basic-verified-id-valid-period or <= standard-verified-id-valid-period 
+                                        (asserts! (or (<= current-verification-expiration basic-verified-id-valid-period)
+                                                    (<= current-verification-expiration standard-verified-id-valid-period)) ERR-NOT-VERIFIED) 
+                                
+                                        (ok true)       
+                                     )
+                                        
+                ;; else, return false
+                ERR-VERIFICATION-EXPIRED
+            )                                            
+            
+     ) 
+)                             
+    
 ;; ========== PUBLIC FUNCTIONS ==========
 ;; Function to register a filmmaker's identity
     ;; Strategic Purpose: Establish the foundation for filmmakers to register ther identity for verification
-(define-public (register-filmmaker-id (new-filmmaker principal) (new-full-name (string-ascii 100)) (new-profile-url (string-ascii 255)) (new-identity-hash (buff 32)) (choice-verification-level uint) (choice-verification-level-expiration uint)) 
+(define-public (register-filmmaker-id (new-filmmaker principal) (new-full-name (string-ascii 100)) (new-profile-url (string-ascii 255)) (new-identity-hash (buff 32)) (new-choice-verification-level uint) (new-choice-verification-level-expiration uint)) 
     (let 
         (
             ;; existing total registered filmmakers and new total registred filmmakers respectively
@@ -141,8 +181,8 @@
             full-name: new-full-name, 
             profile-url: new-profile-url, 
             identity-hash: new-identity-hash, 
-            verification-level: choice-verification-level, ;; filmmaker chooses what level of verification level they would want to opt for 
-            verification-expiration: choice-verification-level-expiration, ;; filmmaker inputs default expiration period of their choice verification level 
+            choice-verification-level: new-choice-verification-level, ;; filmmaker chooses what level of verification level they would want to opt for 
+            choice-verification-expiration: new-choice-verification-level-expiration, ;; filmmaker inputs default expiration period of their choice verification level 
             verified: false, ;; Typically false since filmmaker's identity is yet to be verified
             registration-time: block-height
         })
@@ -175,8 +215,8 @@
             (existing-total-filmmaker-portfolio-counts (var-get total-filmmaker-portfolio-counts)) 
             (new-total-filmmaker-portfolio-counts (+ u1 existing-total-filmmaker-portfolio-counts)) 
         ) 
-        ;; Ensure the caller is the filmmaker or admin
-        (asserts! (or (is-eq tx-sender new-added-filmmaker) (is-admin)) ERR-NOT-AUTHORIZED)  
+        ;; Ensure the caller is the filmmaker 
+        (asserts! (is-eq tx-sender new-added-filmmaker) ERR-NOT-AUTHORIZED)  
 
         ;; Ensure filmmaker is registered
         (asserts! is-filmmaker-registered ERR-FILMMAKER-NOT-FOUND)
@@ -196,16 +236,13 @@
         (var-set total-filmmaker-endorsement-counts u0 ) 
 
         ;; Update filmmaker portfolio count
-        (ok (map-set filmmaker-portfolio-counts new-added-filmmaker new-filmmaker-counts))
+        (map-set filmmaker-portfolio-counts new-added-filmmaker new-filmmaker-counts)
+        (ok new-filmmaker-counts)
     )
 )
 
 ;; Function to verify a filmmaker (admin only)
     ;; Strategic Purpose: Provide platform-level verification of identity
-            ;; @params:
-                ;;   filmmaker-principal - principal of the filmmaker
-                ;;   verification-level - uint level of verification (1-basic, 2-standard, 3-premium)
-                ;;   expiration-block - uint block height when verification expires
 (define-public (verify-filmmaker-identity (new-added-filmmaker principal) (new-verificaion-level uint) (new-expiration-block uint)) 
     (let 
         (
@@ -213,8 +250,8 @@
             (existing-filmmaker-data (unwrap! (map-get? filmmaker-identities new-added-filmmaker) ERR-FILMMAKER-NOT-FOUND))
 
             ;; Get verification-level-data and verification expiration data
-            (existing-choice-verification-level-data (get verification-level existing-filmmaker-data))
-            (exisitng-choice-ver-level-expiration (get verification-expiration existing-filmmaker-data))
+            (existing-choice-verification-level-data (get choice-verification-level existing-filmmaker-data))
+            (exisitng-choice-ver-level-expiration (get choice-verification-expiration existing-filmmaker-data))
 
             ;; Get core contract
             (current-core-contract (var-get core-contract))
@@ -266,13 +303,45 @@
     )
 )
 
+;; Function to update filmmaker verification expiration (called by verification renewal function in the feeextension)
+    ;; Strategic Purpose: Transforms verification from a one-time transaction into a recurring revenue stream while maintaining 
+    ;;                      continuous filmmaker-backer trust relationships and reducing customer churn.
+(define-public (update-filmmaker-expiration-period (new-filmmaker principal) (new-expiration-period uint)) 
+    (let 
+        (
+            (current-filmmaker-identities-data (unwrap! (map-get? filmmaker-identities new-filmmaker) ERR-FILMMAKER-NOT-FOUND))
+
+            ;; Get renewal-extension contract address
+            (current-renewal-extension-contract (var-get renewal-extension-contract))
+
+            ;;Get currently-verified 
+            (currently-verified (is-verification-current new-filmmaker))
+            
+
+        ) 
+        ;; Ensure caller is authorized (either admin or the renewal extension contract)
+        (asserts! (or (is-admin) (is-eq tx-sender current-renewal-extension-contract)) ERR-NOT-AUTHORIZED)
+
+        ;; Ensure filmmaker is currently verified
+        (asserts! (is-ok currently-verified) ERR-NOT-VERIFIED)
+
+        ;; Update the filmmaker's expiration period
+        (map-set filmmaker-identities new-filmmaker
+            (merge current-filmmaker-identities-data
+                {
+                    choice-verification-expiration: new-expiration-period,
+                    registration-time: block-height  ;; Reset registration time for new 
+                } 
+            )
+        )
+
+        (ok new-expiration-period)
+        
+    )
+)
+
 ;; Function to add third-party endorsements for a filmmaker
     ;; Strategic Purpose: Enhance trust through industry recognition
-        ;; @params:
-            ;;   filmmaker-principal - principal of the filmmaker
-            ;;   endorser-name - (string-ascii 100) name of endorsing entity
-            ;;   endorsement-letter - (string-ascii 255) brief endorsement
-            ;;   endorsement-url - (string-ascii 255) verification link for endorsement
  (define-public (add-filmmaker-endorsement (new-added-filmmaker principal) (new-endorser-name (string-ascii 100)) (new-endorsement-letter (string-ascii 255)) (new-endorsement-url (string-ascii 255)))
     (let 
         (
@@ -283,6 +352,7 @@
 
             ;; check if new-filmmaker is registered (as input) in the read-only func
             (is-filmmaker-registered (is-registered new-added-filmmaker))
+            
             
         )
         
@@ -306,7 +376,7 @@
         ;; Return result as new endorsement count
         (ok new-endorsement-count)
     )
-    )
+ )
     
 ;; ========== ADMIN FUNCTIONS ==========
 ;; Function to set the contract administrator
@@ -325,6 +395,14 @@
     )
 )
 
+;; Function to set the renewal extension contract (admin only as well
+(define-public (set-renewal-extension-contract (extension-contract principal))
+    (begin
+        (asserts! (is-admin) ERR-NOT-AUTHORIZED)
+        (ok (var-set renewal-extension-contract extension-contract))
+    )
+)
+
 ;; ========== THIRD-PARTY FUNCTION ==========
 ;; Function to enable contract-admin set optional third-party endorsers
 (define-public (set-third-party-endorser (new-endorser principal)) 
@@ -333,3 +411,83 @@
         (ok (var-set third-party-endorser new-endorser))
     )
 )
+
+
+;; ========== READ-ONLY FUNCTIONS ==========
+ ;; Function to check if filmmaker has a portfolio 
+(define-read-only (is-portfolio-available (new-filmmaker principal) (new-id uint))
+    (match (map-get? filmmaker-portfolios { filmmaker: new-filmmaker, portfolio-id: new-id })
+        portfolio-available (ok true)
+        ;; If not found, return error 
+        ERR-PORTFOLIO-NOT-FOUND
+    )
+)
+
+;; Function to check if filmmaker's verification status is current, and not expired
+(define-read-only (is-filmmaker-currently-verified (new-filmmaker principal))
+  (is-verification-current new-filmmaker)
+  
+)
+
+;; Function to check if filmmaker is endorsed
+(define-read-only (is-endorsement-available (new-filmmaker principal) (new-id uint))
+    (match (map-get? filmmaker-endorsements { filmmaker: new-filmmaker, endorsement-id: new-id })
+        endorsement-available (ok true)
+        ;; If not found, return error
+        ERR-ENDORSEMENT-NOT-FOUND
+     )
+)
+
+;; Function to get full details of filmmaker identity
+(define-read-only (get-filmmaker-identity (new-filmmaker principal)) 
+    (ok (map-get? filmmaker-identities new-filmmaker))
+)
+
+;; Function to get full details of filmmaker portfolio
+(define-read-only (get-filmmaker-portfolio (new-filmmaker principal) (new-id uint)) 
+    (map-get? filmmaker-portfolios { filmmaker: new-filmmaker,  portfolio-id: new-id })
+)
+
+;; Function to get full details of filmmaker endorsement letter
+(define-read-only (get-filmmaker-endorsements (new-filmmaker principal) (new-id uint)) 
+    (map-get? filmmaker-endorsements { filmmaker: new-filmmaker, endorsement-id: new-id })
+)
+
+
+;; Function to get total registered filmmakers
+(define-read-only (get-total-filmmakers)
+  (var-get total-registered-filmmakers)
+)
+
+;; Function to get total verification fees collected
+(define-read-only (get-total-verification-fees)
+  (var-get total-verification-fee-collected)
+)
+
+;; Function to get total registered filmmaker portfolios
+(define-read-only (get-total-registered-filmmaker-portfolios)
+    (var-get total-filmmaker-portfolio-counts)
+)
+
+;; Function to get total registered endorsements
+(define-read-only (get-total-filmmaker-endorsements) 
+    (var-get total-filmmaker-endorsement-counts)
+)
+
+;; Function to get the core contract
+(define-read-only (get-core) 
+    (var-get core-contract)
+)
+
+;; Function to get third-party endorser address
+(define-read-only (get-third-party-address) 
+    (var-get third-party-endorser)
+)
+
+;; Function to get the contract admin
+(define-read-only (get-contract-admin)
+    (ok (var-get contract-admin))
+)
+
+
+

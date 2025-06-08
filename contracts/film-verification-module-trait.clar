@@ -18,7 +18,7 @@
                 ;;   full-name - (string-ascii 100) full legal name
                 ;;   profile-url - (string-ascii 255) link to filmmaker's professional prole
                 ;;   identity-hash - (buff 32) hash of identity document
-        (register-filmmaker-id (principal (string-ascii 100) (string-ascii 255) (buff 32)) (response bool uint))
+        (register-filmmaker-id (principal (string-ascii 100) (string-ascii 255) (buff 32) uint uint) (response bool uint))
 
     ;; Function to add filmmaker's previous work/portfolio
         ;; Strategic Purpose: Allow filmmakers to showcase their track record
@@ -39,6 +39,12 @@
                 ;;   expiration-block - uint block height when verification expires
         (verify-filmmaker-identity (principal uint uint) (response bool uint))
 
+    ;; Function to update filmmaker verification expiration (called by verification renewal function in the feeextension)
+        ;; Strategic Purpose: Transforms verification from a one-time transaction into a recurring revenue stream while maintaining 
+        ;;               continuous filmmaker-backer trust relationships and reducing customer churn.
+            
+        (update-filmmaker-expiration-period (principal uint) (response uint uint))
+
 
     ;; Function to add third-party endorsements for a filmmaker
         ;; Strategic Purpose: Enhance trust through industry recognition
@@ -49,27 +55,53 @@
             ;;   endorsement-url - (string-ascii 255) verification link for endorsement
         (add-filmmaker-endorsement (principal (string-ascii 100) (string-ascii 255) (string-ascii 255))  (response uint uint))
 
-        
-    ;; Function to get all verification data for a filmmaker
-        ;; Strategic Purpose: Provide complete transparency to backers about filmmaker credentials
+    ;; Function to check if filmmaker has a portfolio 
+        ;; Strategic Purpose: Enhance credibility through accessible filmmography
             ;; @params:
                 ;;   filmmaker-principal - principal of the filmmaker
-        (get-filmmaker-verification-data (principal) (response bool uint))
+                ;;   portfolio ID - uint ID of existing portfolio
+        (is-portfolio-available (principal uint) (response bool uint))
 
-    ;; Function to get portfolio details for a filmmaker
-        ;; Strategic Purpose: Allow backers to review filmmaker's previous work
+     ;; Function to check if filmmaker's identity is verified
+        ;; Strategic Purpose: Provides access to platform verification to secure trust between backers and filmmaker
             ;; @params:
                 ;;   filmmaker-principal - principal of the filmmaker
-                ;;   portfolio-id - uint ID of the portfolio item
-        (get-portfolio-details (principal uint) (response bool uint))
+        (is-filmmaker-currently-verified (principal) (response bool uint))
 
-    ;; Function to get endorsement details for a filmmaker
-        ;; Strategic Purpose: Provide social proof of filmmaker's credibility
+    ;; Function to check if filmmaker possesses industry recognition
+        ;; Strategic Purpose: Enhances credibility through letters of endorsements
             ;; @params:
                 ;;   filmmaker-principal - principal of the filmmaker
-                ;;   endorsement-id - uint ID of the endorsement
-        (get-endorsement (principal uint) (response bool uint))
+                ;;   portfolio ID - uint ID of existing portfolio    
+        (is-endorsement-available (principal uint) (response bool uint))
 
+            ;; @params: 
+                ;; full-name - (string-ascii 100),
+                ;; profile-url: (string-ascii 255),
+                ;; identity-hash: (buff 32),
+                ;; choice-verification-level: uint,
+                ;; choice-verification-expiration: uint,
+                ;; verified: bool,
+                ;; registration-time: uint
+    (get-filmmaker-identity (principal) (response (optional {
+            full-name: (string-ascii 100),
+            profile-url: (string-ascii 255),
+            identity-hash: (buff 32),
+            choice-verification-level: uint,
+            choice-verification-expiration: uint,
+            verified: bool,
+            registration-time: uint
+        }) uint))
+
+    ;; Function to get the contract admin
+        ;; Strategic Purpose: Allow external contracts to verify admin privileges within the film verification module
+            ;; @returns: principal of the contract administrator
+        (get-contract-admin () (response principal uint))
+    
+  
     )
-        
+
 )
+
+  
+

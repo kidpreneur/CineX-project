@@ -61,6 +61,11 @@ epoch = 2.5
 path = 'contracts/rewards-nft-trait.clar'
 clarity_version = 2
 epoch = 2.5
+
+[contracts.verification-fee-mgt-enhancement-extension]
+path = 'contracts/verification-fee-mgt-enhancement-extension.clar'
+clarity_version = 2
+epoch = 2.5
 [repl.analysis]
 passes = ['check_checker']
 
