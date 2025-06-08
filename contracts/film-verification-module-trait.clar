@@ -39,6 +39,12 @@
                 ;;   expiration-block - uint block height when verification expires
         (verify-filmmaker-identity (principal uint uint) (response bool uint))
 
+    ;; Function to update filmmaker verification expiration (called by verification renewal function in the feeextension)
+        ;; Strategic Purpose: Transforms verification from a one-time transaction into a recurring revenue stream while maintaining 
+        ;;               continuous filmmaker-backer trust relationships and reducing customer churn.
+            
+        (update-filmmaker-expiration-period (principal uint) (response uint uint))
+
 
     ;; Function to add third-party endorsements for a filmmaker
         ;; Strategic Purpose: Enhance trust through industry recognition
@@ -68,6 +74,24 @@
                 ;;   filmmaker-principal - principal of the filmmaker
                 ;;   portfolio ID - uint ID of existing portfolio    
         (is-endorsement-available (principal uint) (response bool uint))
+
+            ;; @params: 
+                ;; full-name - (string-ascii 100),
+                ;; profile-url: (string-ascii 255),
+                ;; identity-hash: (buff 32),
+                ;; choice-verification-level: uint,
+                ;; choice-verification-expiration: uint,
+                ;; verified: bool,
+                ;; registration-time: uint
+    (get-filmmaker-identity (principal) (response (optional {
+            full-name: (string-ascii 100),
+            profile-url: (string-ascii 255),
+            identity-hash: (buff 32),
+            choice-verification-level: uint,
+            choice-verification-expiration: uint,
+            verified: bool,
+            registration-time: uint
+        }) uint))
 
     ;; Function to get the contract admin
         ;; Strategic Purpose: Allow external contracts to verify admin privileges within the film verification module
