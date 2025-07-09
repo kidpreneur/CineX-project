@@ -1,5 +1,5 @@
 
-;; title: rewards-nft-trait;; title: rewards-nft-trait
+;; title: rewards-nft-trait
 ;; version: 1.0.0
 ;; Author: Victor Omenai 
 ;; Created: 2025

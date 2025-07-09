@@ -18,7 +18,7 @@
 ;; with the core CineX platform and a separate NFT rewards contract.
 
 ;; Strategic Purpose: Manages backer incentives and value delivery
-;; This addresses the "Value Proposition component of the Business Model Canvas of CineX
+;; This addresses the "Value Proposition component of the Business Model of CineX
 
 ;; Implements the Rewards Trait interface
 (impl-trait .rewards-module-trait.rewards-trait)
@@ -67,14 +67,15 @@
 ;; --- Core functionality begins ---
 
 ;; Awards a single campaign reward to a contributor
-(define-public (award-campaign-reward (campaign-id uint) (new-contributor principal) (new-reward-tier uint) (new-reward-desc (string-ascii 150)))
+(define-public (award-campaign-reward (campaign-id uint) (new-contributor principal) (new-reward-tier uint) (new-reward-desc (string-ascii 150)) (funding-module <rew-crowdfunding-trait>))
   (let
     (
+
       ;; Fetch the campaign details from the crowdfunding module
-      (campaign (unwrap! (contract-call? (var-get crowdfunding-contract) get-campaign campaign-id) ERR-CAMPAIGN-NOT-FOUND))
+      (campaign (unwrap! (contract-call? funding-module get-campaign campaign-id) ERR-CAMPAIGN-NOT-FOUND))
 
       ;; Get current-owner of campaign
-      (current-owner (get owner campaign))
+      (current-owner  (get owner campaign))
 
       ;; Get current-reward-tiers of the campaign
       (current-reward-tiers (get reward-tiers campaign))
@@ -89,7 +90,7 @@
       (new-total-minting-fees (+ current-total-minting-fees REWARD-MINTING-FEE))
 
       ;; Track contributor-token-id to unwrapped minting details of exact contributor's token 
-      (contributor-token-id (unwrap! (contract-call? (var-get rewards-contract) mint new-contributor campaign-id new-reward-tier new-reward-desc) 
+      (contributor-token-id (unwrap! (contract-call?  .CineX-rewards-sip09  mint new-contributor campaign-id new-reward-tier new-reward-desc) 
             ERR-REWARD-MINT-FAILED))
 
 
@@ -121,11 +122,11 @@
 )
 
 ;; Awards multiple campaign rewards at once (batch processing)
-(define-public (batch-award-campaign-rewards (campaign-id uint) (contributors (list 50 principal)) (reward-tiers (list 50 uint)) (reward-descriptions (list 50 (string-ascii 150))))
+(define-public (batch-award-campaign-rewards (campaign-id uint) (contributors (list 50 principal)) (reward-tiers (list 50 uint)) (reward-descriptions (list 50 (string-ascii 150))) (funding-module <rew-crowdfunding-trait>))
   (let
     (
       ;; Fetch the campaign details
-      (campaign (unwrap! (contract-call? (var-get crowdfunding-contract) get-campaign campaign-id) ERR-CAMPAIGN-NOT-FOUND))
+      (campaign (unwrap! (contract-call? funding-module get-campaign campaign-id) ERR-CAMPAIGN-NOT-FOUND))
 
       ;; get owner of campaign
       (current-owner (get owner campaign)) 
@@ -146,7 +147,7 @@
       (new-batch-total-minting-fees (+ current-total-minting-fees total-batch-minting-fee))
 
       ;; Use the variable to call the contract and Batch mint NFT rewards
-      (mint-result (unwrap! (contract-call? (var-get rewards-contract) batch-mint contributors reward-tiers reward-descriptions campaign-id)
+      (mint-result (unwrap! (contract-call? .CineX-rewards-sip09 batch-mint contributors reward-tiers reward-descriptions campaign-id)
                       ERR-REWARD-MINT-FAILED))
 
     )
@@ -179,16 +180,23 @@
   )
 )
 
-;; Initialization function to set up core-contract, rewards-NFT-contract and funding-core-contract
+;; Initialization function to set up core-contract
 ;; Can only be called once by the contract owner (tx-sender at deployment)
-(define-public (initialize (core principal) (rewards-nft <rew-nft-reward-trait>) (funding-core-contract <rew-crowdfunding-trait>))
+(define-public (initialize (core principal))
   (begin
     (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
     (var-set core-contract core)
-    (var-set rewards-contract (contract-of rewards-nft))
-    (var-set crowdfunding-contract (contract-of funding-core-contract))
     (ok true)
   )
+)
+
+;; Set the crowdfunding-contract 
+(define-public (set-crowdfunding (module principal))
+  (begin 
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (var-set crowdfunding-contract module)
+    (ok true)
+  )   
 )
 
 

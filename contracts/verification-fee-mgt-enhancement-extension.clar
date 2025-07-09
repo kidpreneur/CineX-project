@@ -159,17 +159,17 @@
             (current-verification-data (unwrap! (contract-call? verification-contract get-filmmaker-identity tx-sender) ERR-FILMMAKER-NOT-FOUND))
 
             ;; Get current-verification-level 
-            (current-verification-level (get choice-verification-level current-verification-data))
+            (current-verification-level  (unwrap! (get choice-verification-level current-verification-data) ERR-FILMMAKER-NOT-FOUND))
 
             ;; Get expiration-period per unique current verified account  and calculate new-expiration-periodonce renewal is successfully processed
-            (current-expiration-period (get choice-verification-expiration current-verification-data))
+            (current-expiration-period  (unwrap! (get choice-verification-expiration current-verification-data) ERR-FILMMAKER-NOT-FOUND))      
             (new-expiration-period (+ current-expiration-period (if (is-eq current-verification-level u1)
                                                                             u52560
                                                                             (* u52560 u2)
                                                                 )))
 
             ;; Get current verification registration time
-            (current-registration-time (get registration-time current-verification-data))
+            (current-registration-time  (unwrap! (get registration-time current-verification-data) ERR-FILMMAKER-NOT-FOUND))
 
             ;; 75% of Current verification period 
             (current-75-percent-of-verification-period  (/ (* (- current-expiration-period current-registration-time) u75) u100))
@@ -197,7 +197,9 @@
          (asserts! (> block-height (+ current-registration-time current-75-percent-of-verification-period)) ERR-RENEWAL-TOO-EARLY) 
 
         ;; Collect renewal fee (goes to contract, will be distributed later)
-        (unwrap! (stx-transfer? appropriate-renewal-fee  (as-contract tx-sender) ) ERR-TRANSFER)
+        (unwrap! (stx-transfer? appropriate-renewal-fee tx-sender (as-contract tx-sender)) ERR-TRANSFER)
+
+        
 
         ;; Record payment in filmmaker-payent-history map
         (map-set filmmaker-payment-history {filmmaker: new-filmmaker, payment-index: new-filmmaker-payment-count } {
