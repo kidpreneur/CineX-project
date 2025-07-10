@@ -61,6 +61,7 @@
 (define-constant ERR-FILMMAKER-NOT-FOUND (err u411))
 (define-constant ERR-IDENTITY-NOT-VERIFIED (err u412))
 (define-constant ERR-PROJECT-NOT-FOUND (err u413))
+(define-constant ERR-NO-MUTUAL-PROJECT (err u414))
 
 
 ;; ========================
@@ -166,7 +167,7 @@
             (current-project-count (default-to u0 (map-get? filmmaker-project-counts tx-sender)))
             (new-project-count (+ current-project-count u1))
 
-            ;; Get filmmaker verified status from "get-filmmaker-identity" read-only function of filmmaker-verification module
+            ;; Get filmmaker verified status from 'is-filmmaker-currently-verified" read-only fucntion of filmmaker-verification module
             (identity-is-verified  (unwrap! (contract-call? .film-verification-module is-filmmaker-currently-verified tx-sender) ERR-IDENTITY-NOT-VERIFIED))
         ) 
 
@@ -234,31 +235,106 @@
 
 ;; Create mutual connection between filmmakers
      ;; @func: This function allows filmmakers to establish verified connections with each other in the system.
-     ;; @params:     (target-member principal) 
-                ;;  (connection-type (string-ascii 30))
-                ;; (mutual-project-ids (list 10 uint)))
+(define-public (create-mutual-connection (new-requester principal) (new-target principal) (new-connection-type (string-ascii 30)) (new-mutual-project-ids (list 10 uint))) 
+    (let 
+        (
+            ;; get requester's current verified status from 'is-filmmaker-currently-verified" read-only fucntion of filmmaker-verification module
+            (requester-identity-is-verified (unwrap! 
+                                                (contract-call? .film-verification-module is-filmmaker-currently-verified tx-sender) 
+                                                    ERR-IDENTITY-NOT-VERIFIED))
+
+            ;; get target's current verified status
+            (target-identity-is-verified (unwrap! 
+                                                (contract-call? .film-verification-module is-filmmaker-currently-verified new-target) 
+                                                    ERR-IDENTITY-NOT-VERIFIED))
+
+            ;; filter out the presence of verified project collaborations for the requester out of the list of mutual-project-ids  
+            (current-requester-verified-collaborations (filter verify-requester-project-collaborations new-mutual-project-ids))
+
+            ;; filter out the presence of verified project collaborations for the target out of the list of mutual-project-ids  
+            (current-target-verified-collaborations (filter verify-target-project-collaborations new-mutual-project-ids))
+ 
+
+            ;; get current requester mutual projects count
+            (requester-mutual-verified-projects-count (len current-requester-verified-collaborations))
+
+            ;; get current target mutual projects count
+            (target-mutual-verified-projects-count (len current-target-verified-collaborations))
+            
+            ;; get requester-mutual-projects-endorsement-score
+            (requester-mutual-projects-endorsement-score (calculate-endorsement-score requester-mutual-verified-projects-count))
+
+            ;; get target-mutual-projects-endorsement-score
+            (target-mutual-projects-endorsement-score (calculate-endorsement-score target-mutual-verified-projects-count))
+        ) 
+        (asserts! (or (is-eq tx-sender new-requester) (is-eq tx-sender new-target)) ERR-NOT-AUTHORIZED)
+
+        ;; Ensure at least one mutual project count exists
+        (asserts! (or (>= requester-mutual-verified-projects-count u0) (>= target-mutual-verified-projects-count u0)) ERR-INVALID-ROTATION)
+
+        ;; Create bi-directional connection
+            ;; for requester
+        (map-set member-social-connections { requester: tx-sender, target: new-target } {
+            connection-type: new-connection-type, ;; this status message could be "colleague" "friend", or "collaborator";
+            mutual-projects: current-target-verified-collaborations, ;; list of project IDs verified by targets as mutual collaborations
+            mutual-projects-count: requester-mutual-verified-projects-count, ;; Count for easier access to each mutual project/quick collaboration count tracking
+            endorsement-score: requester-mutual-projects-endorsement-score,
+            last-collaboration: block-height, ;; block-height of most recent collaboration
+            verified-at: block-height,
+         })
 
 
+        ;; for target 
+        (map-set member-social-connections { requester: new-target, target: tx-sender } {
+            connection-type: new-connection-type, ;; this status message could be "colleague" "friend", or "collaborator";
+            mutual-projects: current-requester-verified-collaborations, ;; list of project IDs verified by requester as mutual collaborations
+            mutual-projects-count: target-mutual-verified-projects-count, ;; Count for easier access to each mutual project/quick collaboration count tracking
+            endorsement-score: target-mutual-projects-endorsement-score,
+            last-collaboration: block-height, ;; block-height of most recent collaboration
+            verified-at: block-height,
+
+         })
+
+        (ok true)
+
+    )
+
+)
 
 
-
-                ;; Social Connections for Trust Building
-;;(define-map member-social-connections { requester: principal, target: principal } { 
- ;;   connection-type: (string-ascii 30), ;; this status message could be "colleague" "friend", or "collaborator";
- ;;   mutual-projects: (list 10 uint), ;; list of project IDs they've worked on together
- ;;   mutual-projects-count: uint, ;; Count for easier access to each mutual project/quick collaboration count tracking
- ;;    endorsement-score: uint,
- ;;    last-collaboration: uint, ;; block-height of most recent collaboration
- ;;   verified-at: uint,
- ;;    })
+;; Helper function to verify project collaboration claims by requester
+(define-private (verify-requester-project-collaborations (new-project-id uint))
+    (match (map-get? filmmaker-projects { filmmaker: tx-sender, project-id: new-project-id }) 
+            project (get verified project) 
+            false
+    )
+)
 
 
-
-
-;; Helper function to verify project collaboration
-
+;; Helper function to verify project collaboration claims by target
+(define-private (verify-target-project-collaborations (new-project-id uint))
+    (match (map-get? filmmaker-projects { filmmaker: tx-sender, project-id: new-project-id }) 
+            project (get verified project) 
+            false
+    )
+)
 
 ;; Calculate endorsement score based on mutual projects and connection strength
+(define-private (calculate-endorsement-score (mutual-projects-count uint))
+    (if (>= mutual-projects-count u10) ;; mutual projects count is >= u10
+        u100 ;; Exceptional collaboration history
+        (if (>= mutual-projects-count u7) ;; else, if it is >= u7
+                u85  ;; Strong collaboration history
+            (if (>= mutual-projects-count u5) ;; else, if it is >= u5
+                u70 ;; Good collaboration history 
+                (if (>= mutual-projects-count u3) ;; else, if it is >= u3
+                    u55 ;; Basic collaboration history 
+                    u30 ;; ELSE, RETURN 'No verified collaboration history' 
+                )
+            )    
+        )
+    )
+)
 
 
 ;; Get mutual projects relationship between two filmmakers
