@@ -62,7 +62,7 @@
 (define-constant ERR-IDENTITY-NOT-VERIFIED (err u412))
 (define-constant ERR-PROJECT-NOT-FOUND (err u413))
 (define-constant ERR-NO-MUTUAL-PROJECT (err u414))
-
+(define-constant ERR-CONNECTION-NOT-FOUND (err u415))
 
 ;; ========================
 ;; DATA STRUCTURES
@@ -95,21 +95,22 @@
     })
 
 ;; Pool Member Structure
-(define-map pool-individual-member-structure { pool-id: uint, member-address: principal } { 
+(define-map pool-individual-members { pool-id: uint, member-address: principal } { 
     contribution-amount: uint,
     joined-at: uint,
-    member-reputation-score: uint,
+    member-pool-reputation-score: uint, ;; funding performance of the member in past pool rotations  
     previous-pools-count: uint, 
     has-contributed: bool,
     verification-status: (string-ascii 24) ;; this status message could be "verified", "pending" or "none"
     })
 
 ;; Esusu/Rotating funding Pool Structure
-(define-map rotating-funding-pool-structure { pool-id: uint } { 
+(define-map rotating-funding-pools { pool-id: uint } { 
     pool-name: (string-utf8 100),
     pool-creator: principal,
     max-members: uint,
     current-pool-members: uint,
+    member-list: (list 20 principal),
     contribution-per-member: uint,
     total-pool-value: uint,
     current-rotation: uint,
@@ -146,6 +147,13 @@
     dispute-count: uint
     })
 
+
+;; ==================================================
+;; GLOBAL VARIABLES
+;; ==================================================
+
+;; Unique pool counter  
+(define-data-var pool-id uint u0)
 
 ;; ==================================================
 ;; PROJECT ENTRY FUNCTIONS
@@ -234,7 +242,8 @@
 ;; ==================================================
 
 ;; Create mutual connection between filmmakers
-     ;; @func: This function allows filmmakers to establish verified connections with each other in the system.
+     ;; @func: This function allows filmmakers to establish verified connections with each other in the system after verifying the collaboration 
+     ;; claims by the other party in the filmmaker project stage
 (define-public (create-mutual-connection (new-requester principal) (new-target principal) (new-connection-type (string-ascii 30)) (new-mutual-project-ids (list 10 uint))) 
     (let 
         (
@@ -301,7 +310,6 @@
 
 )
 
-
 ;; Helper function to verify project collaboration claims by requester
 (define-private (verify-requester-project-collaborations (new-project-id uint))
     (match (map-get? filmmaker-projects { filmmaker: tx-sender, project-id: new-project-id }) 
@@ -309,7 +317,6 @@
             false
     )
 )
-
 
 ;; Helper function to verify project collaboration claims by target
 (define-private (verify-target-project-collaborations (new-project-id uint))
@@ -338,14 +345,287 @@
 
 
 ;; Get mutual projects relationship between two filmmakers
-
+(define-read-only (get-verified-collaboration (new-filmmaker principal) (new-project-id uint)) 
+    (match (map-get? filmmaker-projects { filmmaker: new-filmmaker, project-id: new-project-id }) 
+        verified-collaboration (get verified verified-collaboration) 
+            false)
+)
 
 
 ;; Get filmmaker's project details
-
-
+(define-read-only (get-filmmaker-project (new-filmmaker principal) (new-project-id uint))
+    (map-get? filmmaker-projects { filmmaker: new-filmmaker, project-id: new-project-id })
+)
 
 ;; Get filmmaker's total project count
+(define-read-only (get-project-counts (new-filmmaker principal))
+    (default-to u0 (map-get? filmmaker-project-counts new-filmmaker))
+)
+
+;; Get estabiished social connections
+(define-read-only (get-social-connections (new-requester principal) (new-target principal)) 
+    (match (map-get? member-social-connections { requester: new-requester, target: new-target }) 
+        establshed-connections (ok "established-connections") 
+            ERR-CONNECTION-NOT-FOUND)
+)
 
 
+;; ==================================================
+;; POOL CREATION & MANAGEMENT
+;; ==================================================
+;; Create new rotating funding pool
+ ;; @func: this function enables an already verified filmmaker to start a pool, of course,
+         ;;  automatically becoming the first member added to the pool 
+(define-public (create-new-rotating-funding-pool (new-project-id uint) 
+    (new-pool-name (string-utf8 100)) 
+    (standard-max-members uint) 
+    (standard-contribution-per-member uint) 
+    (pool-cycle-duration uint)
+    (pool-legal-agreement-hash (buff 32))
+    (pool-category (string-ascii 30))
+    (pool-geographic-focus (string-ascii 50)))
+    (let 
+        (
+            ;; Get verified status of pool creator from 'is-filmmaker-currently-verified" read-only fucntion of filmmaker-verification module
+            (pool-creator-verified-id (unwrap! 
+                                            (contract-call? .film-verification-module is-filmmaker-currently-verified tx-sender) 
+                                                ERR-IDENTITY-NOT-VERIFIED))
+
+            ;; Get projects data
+            (current-projects-data (unwrap! (map-get? filmmaker-projects { filmmaker: tx-sender, project-id: new-project-id }) ERR-PROJECT-NOT-FOUND))
+
+            ;; Get verified projects data of pool creator
+            (pool-creator-verified-projects (get verified current-projects-data))
+
+            ;; Get pool counter, and calculate next pool-id
+            (current-pool-counter (var-get pool-id))
+            (next-pool-id (+ current-pool-counter u1))
+
+        ) 
+        ;; Ensure tx-sender has verified project connections
+        (asserts! (is-eq pool-creator-verified-projects true) ERR-NOT-AUTHORIZED)
+
+        ;; Ensure pool size is no less than 1 and no more than 20
+        (asserts! (and (> standard-max-members u1) (<= standard-max-members u20)) ERR-INVALID-POOL-SIZE)
+
+        ;; Create pool
+        (map-set rotating-funding-pools { pool-id: next-pool-id } { 
+            pool-name: new-pool-name,
+            pool-creator: tx-sender,
+            max-members: standard-max-members,
+            current-pool-members: u1,
+            member-list: (list tx-sender),
+            contribution-per-member: standard-contribution-per-member,
+            total-pool-value: (* standard-contribution-per-member standard-max-members),
+            current-rotation: u0, ;; no rotation yet since pool has not gotten members besides the creator
+            pool-status: "forming", ;; just "forming" 
+            created-at: block-height,
+            cycle-duration: pool-cycle-duration, ;; this is in blocks e.g 30 days
+            legal-agreement-hash: pool-legal-agreement-hash,
+            film-project-category: pool-category, ;; "short-film or 'non-feature length'", "feature length", or "documentary"
+            geographic-focus: pool-geographic-focus ;; "Bollywood" , "Hollywood" , "Nollywood" , "Global",  or "Regional"
+    })
+
+        ;; Add creator as first member
+        (map-set pool-individual-members { pool-id: next-pool-id, member-address: tx-sender } { 
+            contribution-amount: standard-contribution-per-member,
+            joined-at: block-height,
+            member-pool-reputation-score: u50, ;; default score for a start
+            previous-pools-count: u0, 
+            has-contributed: false,
+            verification-status: "verified"  ;; is already verified before being authorized to be a member of a pool, either as creator or not
+    })
+
+        ;; Update pool counter with newly created pool id
+        (var-set pool-id next-pool-id)
+
+        ;; Emit event
+        (print {
+            event: "pool-created",
+            pool-id: next-pool-id,
+            creator: tx-sender,
+            max-members: standard-max-members,
+            contribution: standard-contribution-per-member
+        })
+
+        (ok next-pool-id) 
+    ) 
+
+)
+
+;; Join existing pool (requires mutual connection verification)
+    ;; @func: this function enables verified mutual connections (other filmmakers) with a new pool creator, to join the pool 
+(define-public (join-existing-pool (existing-pool-id uint) 
+    (referrer principal) 
+    (mutual-project-ids (list 10 uint))
+    (new-title (string-utf8 100)) 
+    (new-description (string-utf8 500)) 
+    (expected-completion uint))
+    (let 
+        (
+            ;; Get rotating-funding-pool data 
+            (current-pool-data (unwrap! (map-get? rotating-funding-pools { pool-id: existing-pool-id }) ERR-POOL-NOT-FOUND))
+
+            ;; Get pool status
+            (current-pool-status (get pool-status current-pool-data))
+
+            ;; Get max-members, current-pool-members and current-members-list
+            (pool-max-members (get max-members current-pool-data))
+            (pool-members (get current-pool-members current-pool-data))
+            (current-members-list (get member-list current-pool-data))
+
+            ;; Establish referrer as member in pool-individual-members
+            (member-is-referrer (is-some (map-get? pool-individual-members { pool-id: existing-pool-id, member-address: referrer })))
+
+            ;; filter out the presence of verified project collaborations for the requester out of the list of mutual-project-ids  
+            (current-referrer-verified-collaborations (filter verify-requester-project-collaborations mutual-project-ids))
+
+            ;; filter out the presence of verified project collaborations for the target out of the list of mutual-project-ids  
+            (pool-creator-verified-collaborations (filter verify-target-project-collaborations mutual-project-ids))
+
+            ;; Get contribution-per-member from rotating-funding-pools
+            (contribution-standard (get contribution-per-member current-pool-data))
+
+        ) 
+
+        ;; Ensure joining conditions are validated
+            ;; Check that pool-status of rotating-funding-pools is actively "forming", else, trigger error
+        (asserts! (is-eq current-pool-status "forming") ERR-POOL-INACTIVE)
+            
+            ;; Check that current-pool-members number is lesser than max-members of rotatng-funding-pools, else pool is full
+        (asserts! (> pool-members pool-max-members) ERR-POOL-FULL)
+
+            ;; Check that is-referrer address is a member of pool-individual-members
+        (asserts! member-is-referrer ERR-NOT-AUTHORIZED)
+
+            ;; Check that referrer has verified mutual project connections with the creator, as well as the creator
+        (asserts! (and (> (len current-referrer-verified-collaborations) u0) (> (len pool-creator-verified-collaborations) u0))
+            ERR-NO-MUTUAL-PROJECT)
+               
+        ;; Add new member to pool-individual-members
+        (map-set pool-individual-members { pool-id: existing-pool-id, member-address: tx-sender } { 
+            contribution-amount: contribution-standard,
+            joined-at: block-height,
+            member-pool-reputation-score: u60, ;; sightly higher default number for referrers and referred members  
+            previous-pools-count: u0, 
+            has-contributed: false,
+            verification-status: "verified" ;; this status message could be "verified", "pending" or "none"
+        })
+        ;; Update current-pool-members count in rotating-funding-pools
+        (map-set rotating-funding-pools { pool-id: existing-pool-id } 
+            (merge 
+                current-pool-data 
+                    { 
+                        current-pool-members: (+ pool-members u1),
+                        member-list: (unwrap! (as-max-len? 
+                                                    (append current-members-list tx-sender) u20) 
+                                                    ERR-POOL-FULL)     
+                    }
+            )
+        )
+
+        ;; Activate pool when it reaches max-members capacity
+        (if (is-eq (+ pool-members u1) pool-max-members) 
+            (begin 
+                (try! (activate-pool existing-pool-id))
+                (try! (initialize-rotation-schedule existing-pool-id new-title new-description expected-completion))
+                (ok "joined and activated")
+            ) 
+            
+            (ok "joined")
+        )
+
+    )
+)
+
+;; Activate pool when it reaches maximum capacity
+(define-private (activate-pool (existing-pool-id uint))
+    (let 
+        (
+            ;; Get rotating-funding-pool data 
+            (current-pool-data (unwrap! (map-get? rotating-funding-pools { pool-id: existing-pool-id }) ERR-POOL-NOT-FOUND))
+            
+            ;; Get current-member-list
+            (current-member-list (get member-list current-pool-data))
+        ) 
+        ;; Set pool-status of rotating-funding-pools to "active"
+        (map-set rotating-funding-pools { pool-id: existing-pool-id } 
+            (merge 
+                current-pool-data
+                { pool-status: "active" }
+            )
+        )
+
+        ;; Emit event
+        (print {
+            event: "pool-activated",
+            pool-id: existing-pool-id,
+            member-list: current-member-list
+
+        })
+        (ok true)
+
+    )
+)
+
+;; Initialize rotation schedule for new active pool
+(define-private (initialize-rotation-schedule (existing-pool-id uint) 
+    (new-title (string-utf8 100)) 
+    (new-description (string-utf8 500)) 
+    (expected-completion uint)) 
+    (let 
+        (
+            ;; Get rotating-funding-pools data
+            (current-pool-data (unwrap! (map-get? rotating-funding-pools { pool-id: existing-pool-id }) ERR-POOL-NOT-FOUND))
+
+            ;; Get member-list 
+            (current-member-list (get member-list current-pool-data))
+
+            ;; Get cycle duration from rotating-funding-pools data
+            (current-cycle-duration  (get cycle-duration current-pool-data))
+
+            ;; Get total pool value
+            (current-total-funding (get total-pool-value current-pool-data))
+
+        ) 
+
+        ;; Ensure member-list is not empty
+        (asserts! (> (len current-member-list) u0) ERR-POOL-NOT-FOUND)
+
+        ;; Initilaize funding-rotation-schedule with first rotation (pool creator gets first funding)
+        (map-set funding-rotation-schedule { pool-id: existing-pool-id, rotation-number: u1} { 
+            beneficiary: (unwrap! (element-at? current-member-list u0) ERR-POOL-NOT-FOUND),
+            funding-amount: current-total-funding,
+            scheduled-date: (+ block-height current-cycle-duration),
+            completion-status: "pending",
+            project-details: {
+            title: new-title,
+            description: new-description,
+            expected-completion: expected-completion,
+            campaign-id: u0 ;; this links to existing crowdfunding campaigns
+            }
+        })
+
+        ;; Update current-rotation of rotation-funding-pool
+        (map-set rotating-funding-pools { pool-id: existing-pool-id }
+            (merge 
+                current-pool-data 
+                    { current-rotation: u1 }
+            )
+        )
+
+        (ok true)
+        
+
+        
+    )
+)
+
+;; Get all members of a specific pool
+(define-read-only (get-pool-members (existing-pool-id uint))
+    (match (map-get? rotating-funding-pools { pool-id: existing-pool-id }) 
+        pool-data (ok (get member-list pool-data)) 
+        ERR-POOL-NOT-FOUND
+    )
+)
 
