@@ -538,6 +538,8 @@
     )
 )
 
+;; ==== Helper functions for Pool Creation & Management
+
 ;; Activate pool when it reaches maximum capacity
 (define-private (activate-pool (existing-pool-id uint))
     (let 
@@ -629,3 +631,254 @@
     )
 )
 
+
+;; ==================================================
+;; CONTRIBUTION & FUNDING MECHANICS
+;; ==================================================
+    ;; @func: this function enables pool members contribute to a pool
+    ;; @params: (existing-pool-id uint)
+(define-public (contribute-to-existing-pool (existing-pool-id uint)) 
+    (let 
+        (
+            ;; Get rotating-funding-pools data
+            (current-pool-data (unwrap! (map-get? rotating-funding-pools { pool-id: existing-pool-id }) ERR-POOL-NOT-FOUND))
+
+            ;; Get current-pool-member-data
+            (current-member-data (unwrap! 
+                                    (map-get? pool-individual-members { pool-id: existing-pool-id, member-address: tx-sender }) 
+                                        ERR-NOT-POOL-MEMBER))
+
+            ;; Get contribution standard per member from current-pool-data
+            (contribution-standard (get contribution-per-member current-pool-data))     
+
+            ;; Get has-contributed from the pool-individual-members
+            (contribution-status (get has-contributed current-member-data))  
+
+            ;; Get current-pool-status
+            (current-pool-status (get pool-status current-pool-data))
+        ) 
+
+        ;; Ensure pool status of current-pool-data is "active"
+        (asserts! (is-eq current-pool-status "active") ERR-POOL-INACTIVE)
+
+        ;; Ensure has-contributed from pool-individual-members is NOT yet contributed, else ERR-ALREADY-FUNDED
+        (asserts! (is-eq contribution-status false) ERR-ALREADY-FUNDED)
+
+        ;; Transfer STX to escrow (integrate with existing escrow module)
+        (unwrap! (stx-transfer? contribution-standard tx-sender (as-contract tx-sender)) ERR-INSUFFICIENT-BALANCE)
+
+        ;; Update has-contributed to true 
+        (map-set pool-individual-members { pool-id: existing-pool-id, member-address: tx-sender }
+            (merge 
+                current-member-data 
+                    { has-contributed: true }
+                )
+        )
+
+        ;; Emit successful contribution event
+        (print {
+            event: "contribution-made",
+            pool-id: existing-pool-id,
+            contributor: tx-sender,
+            contribution-amount: contribution-standard,
+            recipient: "escrow"
+        })
+        
+        (ok true)
+    )
+)
+
+
+
+;; Execute rotation funding
+    ;; @func: enables the rotation of funding 
+
+
+
+
+
+;; Project Details Update Function: 
+    ;; @func: Allow beneficiaries to update their project details before their rotation:
+
+
+
+
+;; ========= Helper function for the "Contribution and Funding Mechanics
+;; Verify all pool members have contributed for current rotation
+(define-private (verify-all-contributions (existing-pool-id uint))
+    (let 
+        (
+            ;; Get rotating-funding-pools data
+            (current-pool-data (unwrap! (map-get? rotating-funding-pools { pool-id: existing-pool-id }) ERR-POOL-NOT-FOUND))
+
+            ;; Get member-list from current-pool-data
+            (current-member-list (get member-list current-pool-data))
+        ) 
+          ;; Check if all members have contributed
+          (fold check-member-contribution current-member-list { pool-id: existing-pool-id, all-contributed: true })
+
+          (ok true)
+
+
+    )
+
+)
+
+
+;; Helper function to check individual member contributions
+    ;; This function is called for EACH member in the pool during the fold operation in verify-all-contributions helper function
+
+(define-private (check-member-contribution (member principal) (acc { pool-id: uint, all-contributed: bool })) 
+    (let 
+        (
+            ;; Get the pool-id from the accumulator (passed from fold operation)
+            (existing-pool-id (get pool-id acc))
+
+            ;; Get the current "all-contributed" status from previous members
+            (previous-status (get all-contributed acc))
+
+             ;; Look up this specific member's contribution data
+            (current-member-data (map-get? pool-individual-members { pool-id: existing-pool-id, member-address: member }))
+    
+        )
+        ;; Process the member data
+        (match current-member-data 
+                    member-current-info 
+                        (let
+                            (
+                                ;; Get this member's contribution status
+                                (member-contributed (get has-contributed member-current-info))
+
+                                ;; Calculate new "all-contributed" status
+                                ;; Logic: Keep true ONLY if both previous AND current member contributed
+                                (new-status (and previous-status member-contributed))
+
+                            ) 
+
+                            ;; Return Updated accumulator
+                            { pool-id: existing-pool-id, all-contributed: new-status  }
+                            
+                        )       
+                        ;; CASE 2: Member data not found (error case)
+                        ;; Treat as "not contributed" - this will make all-contributed false
+                        { pool-id: existing-pool-id, all-contributed: false  }
+        )
+    )
+)
+
+;; Advance to next rotation
+(define-private (advance-rotation (existing-pool-id uint) (new-title (string-utf8 100)) (new-description (string-utf8 500))) 
+    (let 
+        (
+            ;; Get rotating-funding-pools as current-pool-data
+            (current-pool-data (unwrap! (map-get? rotating-funding-pools { pool-id: existing-pool-id }) ERR-POOL-NOT-FOUND))
+
+            ;; Get current-rotation from as current-pool-data, and calculate next-rotation
+            (current-rotation (get current-rotation current-pool-data))
+            (next-rotation (+ current-rotation u1))
+
+            ;; Get member-list
+            (current-member-list (get member-list current-pool-data))
+
+            ;; Get current-max-members from current-pool-data
+            (current-max-members (get max-members current-pool-data))
+
+            ;; Get cycle-duration from current-pool-data
+            (current-cycle-duration (get cycle-duration current-pool-data))
+
+            ;; Get current-total-pool-value from current-pool-data
+            (current-total-pool-value (get total-pool-value current-pool-data))
+
+        ) 
+        ;; Check If we have completed all rotations, 
+        (if (<= next-rotation current-max-members) ;; if next-rotation is <= current-max-members, that is, not fully completed round max members
+            
+            (begin 
+                ;; Create next-rotation schedule 
+                (map-set funding-rotation-schedule { pool-id: existing-pool-id, rotation-number: next-rotation } { 
+                                                      
+                    beneficiary: (unwrap!                     ;; zero-based indexing conversion, converting each next-rotation number 
+                                                            ;; to each member's index number, by subtracting the next-rotation by u1  
+                                                            ;; so, rotation num of 1 minus = u0, this accounts for member at index u0, and so on.
+                                    (element-at? current-member-list (- next-rotation u1)) ERR-POOL-NOT-FOUND),
+                    funding-amount: current-total-pool-value,
+                    scheduled-date: (+ block-height current-cycle-duration),
+                    completion-status: "pending",
+                    project-details: {
+                        title: new-title,
+                        description: new-description,
+                        expected-completion: u0,
+                        campaign-id: u0 ;; this links to existing crowdfunding campaigns
+                        }
+                })
+                ;; Update pool's current rotation
+                (map-set rotating-funding-pools { pool-id: existing-pool-id } 
+                    (merge 
+                        current-pool-data 
+                            { current-rotation: next-rotation }
+                    )
+                    
+
+
+                )
+
+                
+                ;; Go through each member in the list and reset their contribution status to false, 
+                ;; carrying the pool-id along for each next-rotation operation"
+                (fold reset-member-contributions current-member-list existing-pool-id)
+
+                (ok true)
+
+            )
+            ;; Else, if all rotations are fully completed round max members
+            ;; - then mark rotating-funding-pool as completed
+            (begin 
+                (map-set rotating-funding-pools { pool-id: existing-pool-id }
+                    (merge 
+                        current-pool-data 
+                            { pool-status: "completed" })
+                
+                )
+
+                (ok true)
+
+            )
+            
+        )
+    )
+)
+
+
+;; Reset member contributions for next rotation
+    ;;@paras: member principal; existing-pool-id 
+(define-private (reset-member-contributions (member principal) (existing-pool-id uint))
+    (let 
+        (
+             ;; Get current-pool-member-data
+            (current-member-data (map-get? pool-individual-members { pool-id: existing-pool-id, member-address: member }))
+        ) 
+        ;; Only update if member data exists
+        (match current-member-data 
+                member-info  
+                    (map-set pool-individual-members { pool-id: existing-pool-id, member-address: member }
+                        (merge 
+                            member-info
+                                { has-contributed: false } ;; reset has-contributed to false
+                        )
+                    )
+               
+                true ;; Return true if member not found 
+        ) 
+        
+        ;; Return the existing-pool-id
+        ;; This is crucial for the fold function - it needs to return the existing-pool-id as the accumulator
+        ;; The fold passes this returned value to the next iteration
+        existing-pool-id
+        
+       
+
+        
+        
+        
+    )
+)
