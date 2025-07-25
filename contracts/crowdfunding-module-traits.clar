@@ -12,7 +12,7 @@
      ;; parameters: 
         ;; project-description - (string-ascii 500); campaign-id - uint 
         ;; funding goal - uint; duration - uint;  reward-tiers-count - uint; reward-description -(string-ascii 150) 
-    (create-campaign ((string-ascii 500) uint uint uint uint) (response uint uint))
+    (create-campaign ((string-ascii 500) uint uint uint uint (string-ascii 150)) (response uint uint))
     
     ;; Contribute funds to a campaign
         ;; paramters: 
@@ -35,7 +35,10 @@
         reward-tiers: uint,
         reward-description: (string-ascii 150),
         total-raised: uint,
-        active: bool
-      } uint))
+        is-active: bool,
+        funds-claimed: bool,
+        is-verified: bool,
+        verification-level: uint
+        } uint))
     )
 )
