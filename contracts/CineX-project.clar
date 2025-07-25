@@ -13,28 +13,6 @@
 ;; ========== Description ==========
 ;; Decentralized crowdfunding platform for filmmakers, connecting them with supporters securely via blockchain.
 ;; Strategic purpose: Main Hub that implements the "Key Partners" component of the Business Model Canvas of CineX
-
-
-
-;; ========== Import Traits (interfaces for modules) ==========
-;; Add verification module trait reference for integration into this main hub
-(use-trait hub-verification-module-trait .film-verification-module-trait.film-verification-trait)
-
-;; Import NFT Reward Trait - used to interact with NFT reward contracts
-(use-trait hub-nft-token-trait 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.nft-trait.nft-trait)
-
-;; Import the rewards-nft-trait for minting NFTs as rewards
-(use-trait hub-nft-reward-trait .rewards-nft-trait.rewards-nft-trait)
-
-;; Import Crowdfunding Trait - for crowdfunding module functions
-(use-trait hub-crowdfunding-trait .crowdfunding-module-traits.crowdfunding-trait)
-
-;; Import Escrow Trait - for escrow module functions
-(use-trait hub-escrow-trait .escrow-module-trait.escrow-trait)
-
-;; Import Rewards Trait - for rewards module functions
-(use-trait hub-rewards-trait .rewards-module-trait.rewards-trait)
-
  
 ;; ========== Constants ==========
 
@@ -62,13 +40,19 @@
 ;; Variable to store address of Escrow Module
 (define-data-var escrow-module principal contract-owner)
 
+;; Variable to store address of Co-EP Module
+(define-data-var co-ep-module principal contract-owner)
+
 ;; ========== Error Constants ==========
 
-;; Error for unauthorized access (error code 1000)
+;; Error for unauthorized access 
 (define-constant ERR-NOT-AUTHORIZED (err u1000))
 
-;; Error for trying to access a module that has not been set yet (error code 1001)
+;; Error for trying to access a module that has not been set yet
 (define-constant ERR-MODULE-NOT-SET (err u1001))
+
+(define-constant ERR-CAMPAIGN-NOT-FOUND (err u1002))
+(define-constant ERR-TRANSFER-FAILED (err u1003))
 
 ;; ========== Admin Functions ==========
 
@@ -134,24 +118,108 @@
   )
 )
 
+;; Public function to dynamically set the co-ep module address
+(define-public (set-co-ep-module (new-module principal))
+  (begin
+    ;; Only admin can set escrow module
+    (asserts! (is-eq tx-sender (var-get contract-admin)) ERR-NOT-AUTHORIZED)
+    
+    ;; Update module address
+    (ok (var-set co-ep-module new-module))
+  )
+)
+
+
+
 ;; ========== VERIFICATION INTEGRATION FUNCTIONS ==========
 ;; Function to get filmmaker portfolio
-(define-public (check-is-portfolio-present (verification-module <hub-verification-module-trait>) (new-filmmaker principal) (new-id uint)) 
-  (contract-call? verification-module is-portfolio-available new-filmmaker new-id)
+(define-public (check-is-portfolio-present (new-filmmaker principal) (new-id uint)) 
+  (contract-call? .film-verification-module is-portfolio-available new-filmmaker new-id)
 )
 
 ;; Function to check if a filmmaker is verified through the verification module
-(define-public (check-is-filmmaker-verified (verification-module <hub-verification-module-trait>) (new-filmmaker principal)) 
-  (contract-call? verification-module is-filmmaker-currently-verified new-filmmaker)
+(define-public (check-is-filmmaker-verified (new-filmmaker principal)) 
+  (contract-call? .film-verification-module is-filmmaker-currently-verified new-filmmaker)
 )
 
 ;; Function to get filmmaker verification 
-(define-public (check-endorsement-status (verification-module <hub-verification-module-trait>) (new-filmmaker principal) (new-id uint))
-  (contract-call? verification-module is-endorsement-available new-filmmaker new-id)
+(define-public (check-endorsement-status (new-filmmaker principal) (new-id uint))
+  (contract-call? .film-verification-module is-endorsement-available new-filmmaker new-id)
+)
+
+;; ========== CROWDFUNDING INTEGRATION FUNCTIONS ==========
+;; Direct contract calls for crowdfunding operations
+(define-public (create-campaign-via-hub (description (string-ascii 500)) 
+    (funding-goal uint) 
+    (duration uint) 
+    (reward-tiers uint) 
+    (reward-description (string-ascii 150)))
+  (contract-call? .crowdfunding-module create-campaign description funding-goal u0 duration reward-tiers reward-description)    
+)
+
+(define-public (contribute-to-campaign (campaign-id uint) (amount uint))
+  (contract-call? .crowdfunding-module contribute-to-campaign campaign-id amount)
+) 
+
+;; Centralized fund claiming with proper authorization
+(define-public (claim-campaign-funds (campaign-id uint))
+  (let 
+    (
+      ;; Get campaign details to verify ownership
+      (campaign (unwrap! (contract-call? .crowdfunding-module get-campaign campaign-id) ERR-CAMPAIGN-NOT-FOUND))
+       ;; Get campaign owner 
+       (owner (get owner campaign))
+    ) 
+    ;; Ensure caller is campaign owner 
+    (asserts! (is-eq tx-sender owner) ERR-NOT-AUTHORIZED)
+
+    ;;Authorize withdrawal in escrow module 
+    (unwrap! (contract-call? .escrow-module authorize-withdrawal campaign-id tx-sender) ERR-TRANSFER-FAILED)
+
+    ;; Authorize fee collection in escrow module
+    (unwrap! (contract-call? .escrow-module authorize-fee-collection campaign-id tx-sender) ERR-TRANSFER-FAILED)
+
+    ;; Call the crowdfunding module toprocess the claim
+    (contract-call? .crowdfunding-module claim-campaign-funds campaign-id)
+  )
+  
+)
+
+;; ========== ESCROW INTEGRATION FUNCTIONS ==========
+;; Direct contract calls for escrow operations
+(define-public (deposit-to-escrow-via-hub (campaign-id uint) (amount uint))
+  (contract-call? .escrow-module deposit-to-campaign campaign-id amount)
+)
+
+;; Centralized withdrawal with proper authorization
+(define-public (withdraw-from-escrow-via-hub (campaign-id uint) (amount uint))
+  (let 
+    (
+      ;; Get campaign details to verify ownership
+      (campaign (unwrap! (contract-call? .crowdfunding-module get-campaign campaign-id) ERR-CAMPAIGN-NOT-FOUND))
+       ;; Get campaign owner 
+       (owner (get owner campaign))
+    ) 
+    ;; Ensure caller is campaign owner 
+    (asserts! (is-eq tx-sender owner) ERR-NOT-AUTHORIZED)
+
+    ;;Authorize withdrawal in escrow module 
+    (unwrap! (contract-call? .escrow-module authorize-withdrawal campaign-id tx-sender) ERR-TRANSFER-FAILED)
+
+     ;; Call the escrow module to process the claim
+     (contract-call? .escrow-module withdraw-from-campaign campaign-id amount)
+
+  )
+  
+)
+
+;; ========== REWARDS INTEGRATION FUNCTIONS ==========
+;; Direct contract calls for rewards operations
+(define-public (award-reward-via-hub (campaign-id uint) (contributor principal) (tier uint) (description (string-ascii 150))) 
+  (contract-call? .rewards-module award-campaign-reward campaign-id contributor tier description)
 )
 
 
- 
 
 ;; ========== Module Accessor Functions ==========
 ;; Read-only function to get the current film verification module address
@@ -174,6 +242,10 @@
   (var-get escrow-module)
 )
 
+;; Read-only function to get the current escrow module address
+(define-read-only (get-co-ep-module)
+  (var-get co-ep-module)
+)
 ;; ========== Platform-Wide Statistics Function ==========
 
 ;; Read-only function to get the addresses of all linked modules
@@ -182,6 +254,24 @@
     crowdfunding-module: (var-get crowdfunding-module),
     rewards-module: (var-get rewards-module),
     escrow-module: (var-get escrow-module),
-    film-verification-module: (var-get film-verification-module)
+    film-verification-module: (var-get film-verification-module),
+    co-ep-module: (var-get co-ep-module)
   }
 )
+
+;; ========== INITIALIZATION FUNCTION ==========
+;; Master initialization function to set all modules at once
+(define-public (initialize-platform (verification principal) (crowdfunding principal) (rewards principal) (escrow principal) (co-ep principal))
+  (begin 
+    (asserts! (is-eq tx-sender (var-get contract-admin)) ERR-NOT-AUTHORIZED)
+    (var-set film-verification-module verification)
+    (var-set crowdfunding-module crowdfunding)
+    (var-set rewards-module rewards)
+    (var-set escrow-module escrow)
+    (var-set co-ep-module co-ep)
+    (ok true)
+  
+  )
+
+)
+
