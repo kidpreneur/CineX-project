@@ -2,6 +2,7 @@
 ;; title: rewards-module-trait
 ;; version: 1.0.0
 
+
 (define-trait rewards-trait
   (
     ;; Award reward to contributor

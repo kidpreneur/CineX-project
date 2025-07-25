@@ -5,7 +5,7 @@
 ;; Created: 2025
 
 ;; ========= Summary ==========
-;; This module extends the existing CineX crowdfunding architecture to support global collaborative funding pools based on the Nigeriantraditional 
+;; This module extends the existing CineX crowdfunding architecture to support global collaborative funding pools based on the Nigerian traditional 
 ;; co-operative collaborative rotating savings model called Ajo or Esusu, which is typical of credit unions providing capital access to 
 ;; persons with mutual society relationships.
 
@@ -27,20 +27,9 @@
 ;; and mutual recognition within the filmmaker community
 ;; => Diversifies risk across multiple projects while aligning incentives through co-producer credits and profit sharing, creating sustainable 
 ;; funding infrastructure with recurring revenue streams
-;; => Positions CineX as a filmmaker credit union that provides reliable capital access through community-assured funding rather than abslute
+;; => Positions CineX as a filmmaker credit union that provides reliable capital access through community-assured funding rather than absolute
 ;; reliance on hope-based public appeals of the crowdfunding feature; this targets professional filmmakers seeking dependable funding partnerships
 
-
-
-;; Import existing traits for consistency
- ;; crowdfunding-trait
-(use-trait co-ep-crowdfunding-trait .crowdfunding-module-traits.crowdfunding-trait) 
-
- ;; reward-trait
- (use-trait co-ep-rewards-trait .rewards-module-trait.rewards-trait)
-
- ;; escrow-trait
-(use-trait co-ep-escrow-trait .escrow-module-trait.escrow-trait)
 
 ;; ========================
 ;; CONSTANTS & ERROR CODES
@@ -57,12 +46,17 @@
 (define-constant ERR-ALREADY-FUNDED (err u407))
 (define-constant ERR-POOL-INACTIVE (err u408))
 (define-constant ERR-INVALID-ROTATION (err u409))
-(define-constant ERR-COMMITMENT-EXPIRED (err u410))
+(define-constant ERR-SCHEDULED-FUNDING-NOT-YET-COMPLETE (err u410))
 (define-constant ERR-FILMMAKER-NOT-FOUND (err u411))
 (define-constant ERR-IDENTITY-NOT-VERIFIED (err u412))
 (define-constant ERR-PROJECT-NOT-FOUND (err u413))
 (define-constant ERR-NO-MUTUAL-PROJECT (err u414))
 (define-constant ERR-CONNECTION-NOT-FOUND (err u415))
+
+;; Default configuration for opt-in crowdfunding reward-tiers and reward description
+(define-constant DEFAULT-REWARD-TIERS u3)
+(define-constant DEFAULT-REWARD-DESCRIPTION "Early digital access, credits, and exclusive content")
+
 
 ;; ========================
 ;; DATA STRUCTURES
@@ -127,13 +121,17 @@
 (define-map funding-rotation-schedule { pool-id: uint, rotation-number: uint } { 
     beneficiary: principal,
     funding-amount: uint,
-    scheduled-date: uint,
+    scheduled-date: uint, ;; block height (as a uint) when funds should be released to the beneficiary
     completion-status: (string-ascii 24),
     project-details: {
         title: (string-utf8 100),
-        description: (string-utf8 500),
+        description: (string-ascii 500),
         expected-completion: uint,
-        campaign-id: uint ;; this links to existing crowdfunding campaigns
+        campaign-id: uint, ;; this links to existing crowdfunding campaigns
+        enable-public-crowdfunding: bool, ;; smart opt-out, enabling filmmakers choose crowdfunding 
+                                            ;; (or not in the function for updating project details), added to Co-EP
+        reward-tiers: uint,
+        reward-description: (string-ascii 500)
     }
      })
 
@@ -155,6 +153,19 @@
 ;; Unique pool counter  
 (define-data-var pool-id uint u0)
 
+;; Contract principal as Core contract reference pointing to the CineX main contract
+(define-data-var core-contract principal tx-sender)
+
+;; Add variable to store address of Crowdfunding Module
+(define-data-var crowdfunding-contract principal tx-sender)
+
+
+;; Add variable to store address of Verification Module
+(define-data-var verification-contract principal tx-sender)
+
+
+;; Add variable to store address of Escrow Module
+(define-data-var escrow-contract principal tx-sender)
 ;; ==================================================
 ;; PROJECT ENTRY FUNCTIONS
 ;; ================================================
@@ -459,7 +470,7 @@
     (referrer principal) 
     (mutual-project-ids (list 10 uint))
     (new-title (string-utf8 100)) 
-    (new-description (string-utf8 500)) 
+    (new-description (string-ascii 500)) 
     (expected-completion uint))
     (let 
         (
@@ -573,7 +584,7 @@
 ;; Initialize rotation schedule for new active pool
 (define-private (initialize-rotation-schedule (existing-pool-id uint) 
     (new-title (string-utf8 100)) 
-    (new-description (string-utf8 500)) 
+    (new-description (string-ascii 500)) 
     (expected-completion uint)) 
     (let 
         (
@@ -604,7 +615,10 @@
             title: new-title,
             description: new-description,
             expected-completion: expected-completion,
-            campaign-id: u0 ;; this links to existing crowdfunding campaigns
+            campaign-id: u0, ;; this links to existing crowdfunding campaigns
+            enable-public-crowdfunding: true,
+            reward-tiers:DEFAULT-REWARD-TIERS,
+            reward-description: DEFAULT-REWARD-DESCRIPTION
             }
         })
 
@@ -692,13 +706,188 @@
 
 ;; Execute rotation funding
     ;; @func: enables the rotation of funding 
+    ;; @Value proposition: 
+     ;; For Filmmakers: 
+        ;; => Provides certainty about when they'll receive funding
+        ;; => Allows project planning around known payment date
+
+    ;; For CineX Protocol
+        ;; => Enables automated rotation progression
+        ;; => Creates audit trails for compliance
+        ;; => Supports future features like: (i) Early completion bonuses; (ii) Late payment penalties; (iii) Grace periods
+(define-public (execute-rotation-funding (existing-pool-id uint)) 
+    (let 
+        (
+            ;; Get rotating-funding-pools data
+            (current-pool-data (unwrap! (map-get? rotating-funding-pools { pool-id: existing-pool-id }) ERR-POOL-NOT-FOUND))
+
+            ;; Get current-rotation from current-pool-data  
+            (current-rotation (get current-rotation current-pool-data))
+
+            ;; Get current-pool-status from rotating-funding-pools
+            (current-pool-status (get pool-status current-pool-data))
+
+            ;; Get funding-rotation-schedule data
+            (funding-rotation-schedule-data (unwrap! 
+                                                        (map-get? funding-rotation-schedule { pool-id: existing-pool-id, rotation-number: current-rotation }) 
+                                                            ERR-INVALID-ROTATION))
+
+            ;; Get current-project-details from funding-rotation-schedule data
+            (current-project-details (get project-details funding-rotation-schedule-data))
+
+            ;; Get nested title of project details from funding-rotation-schedule data 
+            (project-title (get title current-project-details))
+
+            ;; Get nested description of project details from funding-rotation-schedule data 
+            (project-description (get description current-project-details))
+
+            ;; Get funding-amount from funding-rotation-schedule
+            (current-funding-amount (get funding-amount funding-rotation-schedule-data))
+            
+            ;; Get beneficiary from funding-rotation-schedule
+            (current-beneficiary (get beneficiary funding-rotation-schedule-data))
+
+            ;; Get funding's current-completion-status from funding-rotation-schedule 
+            (funding-completion-status (get completion-status funding-rotation-schedule-data ))
+            
+            ;; Get current-scheduled-date from fundng-rotation-schedule
+            (current-scheduled-date (get scheduled-date funding-rotation-schedule-data))
+
+            ;; Get current-all-contributions status of pool members
+            (current-all-contributions (unwrap! (verify-all-contributions existing-pool-id) ERR-INSUFFICIENT-BALANCE))
+
+            ;; Get all-contributed tuple value from the accumulator in current-all-contributions helper function
+            (current-all-contributed (get all-contributed current-all-contributions))
+
+            ;; Get linked-crowdfunding-campaign
+            (linked-crowdfunding-campaign (create-linked-crowdfunding-campaign existing-pool-id current-rotation))
+
+            ;; Get next-advance-rotation
+            (next-advance-rotation (advance-rotation existing-pool-id project-title project-description ))
 
 
+        ) 
 
+        ;; Validate funding conditions
+            ;; Ensure current-pool-status is same as "active"
+        (asserts! (is-eq current-pool-status "active") ERR-POOL-INACTIVE)
+
+            ;; Ensure funding's current-completion-status is "pending"
+        (asserts! (is-eq funding-completion-status "pending") ERR-ALREADY-FUNDED)
+
+            ;; Ensure current time (block-height) has either reached, or, already passed the scheduled-date for a new funding rotation, else throw 
+                ;; ERR-SCHEDULED-FUNDING-NOT-YET-COMPLETE to indicate scheduled date for next funding rotation has not been reached
+        (asserts! (>= block-height current-scheduled-date) ERR-SCHEDULED-FUNDING-NOT-YET-COMPLETE)
+
+         ;; Verify all members have contributed from the current-all-contributions helper function
+         (asserts! current-all-contributed ERR-INSUFFICIENT-BALANCE)
+
+         ;; Transfer funds from as-contract to beneficiary
+         (try! (as-contract (stx-transfer? current-funding-amount tx-sender current-beneficiary)))
+
+         ;; Update completion-status of funding-rotation-schedule as 'funded"
+         (map-set funding-rotation-schedule { pool-id: existing-pool-id, rotation-number: current-rotation }
+            (merge 
+                funding-rotation-schedule-data 
+                    { completion-status: "funded"  }
+            )
+         )
+         ;; Through the helper function, (create-linked-crowdfunding-campaign), use (try!) as post-funding condition 
+         ;; to create crowdfunding campaign for the current beneficiary; so, if campaign fails, (try!) propagates the error 
+         ;; from the "create-campaign" function of the crowdfunding campaign module 
+	        ;; Failed campaign creation doesn't therefore invalidate valid funding
+        (try! linked-crowdfunding-campaign)
+
+        ;; Use try! also for non-critical follow-up, advancing to next rotation without invalidating funding as well
+        (try! next-advance-rotation)
+
+        ;; Emit event
+        (print {
+            event: "rotation-executed",
+            pool-id: existing-pool-id,
+            rotation-number: current-rotation,
+            beneficiary: current-beneficiary,
+            amount: current-funding-amount
+        })
+
+        (ok true)
+    )
+
+
+)    
 
 
 ;; Project Details Update Function: 
-    ;; @func: Allow beneficiaries to update their project details before their rotation:
+    ;; @func: Allow beneficiaries to update their project details before their rotation
+    ;; @params: 
+        ;; pool-id: uint,
+        ;; rotation-number: uint,
+        ;; title: (string-utf8 100),
+        ;; description: (string-ascii 500),
+        ;; expected-completion: uint
+(define-public (update-rotation-project-details (existing-pool-id uint) 
+    (current-rotation-number uint) 
+    (current-title (string-utf8 100)) 
+    (current-project-description (string-ascii 500))     
+    (current-expected-completion uint)
+    (current-reward-tiers uint)
+    (current-reward-description (string-ascii 500)))
+    (let 
+        (
+             ;; Get rotating-funding-pools data
+            (current-pool-data (unwrap! (map-get? rotating-funding-pools { pool-id: existing-pool-id }) ERR-POOL-NOT-FOUND))
+
+            ;; Get current-rotation from current-pool-data  
+            (current-rotation (get current-rotation current-pool-data))
+
+            ;; Get funding-rotation-schedule data
+            (funding-rotation-schedule-data (unwrap! 
+                                                        (map-get? funding-rotation-schedule { pool-id: existing-pool-id, rotation-number: current-rotation }) 
+                                                            ERR-INVALID-ROTATION))   
+            
+            ;; Get beneficiary from funding-rotation-schedule
+            (current-beneficiary (get beneficiary funding-rotation-schedule-data))
+
+             ;; Get project-details from funding-rotation-schedule data
+            (current-project-details (get project-details funding-rotation-schedule-data))
+
+            ;; Get campaign-id from current-project-details of funding-rotation-schedule-data
+            (current-campaign-id (get campaign-id current-project-details))
+
+            ;; Get funding's current-completion-status from funding-rotation-schedule 
+            (funding-completion-status (get completion-status funding-rotation-schedule-data ))
+
+        ) 
+
+        ;; Ensure tx-sender is beneficiary updating their project details
+        (asserts! (is-eq tx-sender current-beneficiary) ERR-NOT-AUTHORIZED)
+
+        ;; Ensure funding's current-completion-status is "pending"
+        (asserts! (is-eq funding-completion-status "pending") ERR-ALREADY-FUNDED)
+
+        ;; Update funding-rotation-schedule with new values of project-details
+        (map-set funding-rotation-schedule { pool-id: existing-pool-id , rotation-number: current-rotation-number } 
+            (merge 
+                funding-rotation-schedule-data { 
+                    project-details: { 
+                        title: current-title,
+                        description: current-project-description,
+                        expected-completion: current-expected-completion,
+                        campaign-id: current-campaign-id, ;; this links to existing crowdfunding campaigns
+                        enable-public-crowdfunding: false, ;; filmmaker instead opts to not get public funding,but stickto just Co-EP funding
+                        reward-tiers: current-reward-tiers, ;; filmmaker updates rewardt-tiers according to marketing plan
+                        reward-description: current-reward-description
+                    } 
+                } 
+            )
+        
+        )
+
+        (ok true)
+    )
+            
+)
+    
 
 
 
@@ -713,17 +902,18 @@
 
             ;; Get member-list from current-pool-data
             (current-member-list (get member-list current-pool-data))
+
+            ;; Check if all members have contributed
+            (contribution-check (fold check-member-contribution current-member-list { pool-id: existing-pool-id, all-contributed: true }))
+
         ) 
-          ;; Check if all members have contributed
-          (fold check-member-contribution current-member-list { pool-id: existing-pool-id, all-contributed: true })
 
-          (ok true)
-
+        ;; Return the tuple from fold  
+        (ok contribution-check)
 
     )
 
 )
-
 
 ;; Helper function to check individual member contributions
     ;; This function is called for EACH member in the pool during the fold operation in verify-all-contributions helper function
@@ -767,11 +957,12 @@
 )
 
 ;; Advance to next rotation
-(define-private (advance-rotation (existing-pool-id uint) (new-title (string-utf8 100)) (new-description (string-utf8 500))) 
+(define-private (advance-rotation (existing-pool-id uint) (new-title (string-utf8 100)) (new-description (string-ascii 500))) 
     (let 
         (
             ;; Get rotating-funding-pools as current-pool-data
             (current-pool-data (unwrap! (map-get? rotating-funding-pools { pool-id: existing-pool-id }) ERR-POOL-NOT-FOUND))
+
 
             ;; Get current-rotation from as current-pool-data, and calculate next-rotation
             (current-rotation (get current-rotation current-pool-data))
@@ -788,12 +979,41 @@
 
             ;; Get current-total-pool-value from current-pool-data
             (current-total-pool-value (get total-pool-value current-pool-data))
+            
+            ;; Get funding-rotation-schedule data
+            (funding-rotation-schedule-data (unwrap! 
+                                                    (map-get? funding-rotation-schedule { pool-id: existing-pool-id, rotation-number: current-rotation }) 
+                                                        ERR-INVALID-ROTATION))
+            
+            ;; Get project-details from funding-rotation-schedule data
+            (current-project-details (get project-details funding-rotation-schedule-data))
+
+            ;; Check if filmmaker explicitly disabled public crowdfunding or not fromthe current-project-details
+            (public-funding-enabled (get enable-public-crowdfunding current-project-details))
+
+            ;; Default to REWARD-TIERS if public-funding is enabled 
+            (current-reward-tiers (if public-funding-enabled 
+                                        ;; Use configured tiers
+                                        DEFAULT-REWARD-TIERS 
+                                        ;; Pool-only, no rewards
+                                        u0
+                                  )
+
+            )
+
+            ;; Default-to REWARD-DESCRIPTION if public-funding enabled
+            (current-reward-description (if public-funding-enabled 
+                                            ;; Use reward-description for configured tiers
+                                            DEFAULT-REWARD-DESCRIPTION 
+                                            "Co-EP Pool Funded Project"
+                                        )
+            )
 
         ) 
         ;; Check If we have completed all rotations, 
         (if (<= next-rotation current-max-members) ;; if next-rotation is <= current-max-members, that is, not fully completed round max members
             
-            (begin 
+            (begin
                 ;; Create next-rotation schedule 
                 (map-set funding-rotation-schedule { pool-id: existing-pool-id, rotation-number: next-rotation } { 
                                                       
@@ -808,9 +1028,15 @@
                         title: new-title,
                         description: new-description,
                         expected-completion: u0,
-                        campaign-id: u0 ;; this links to existing crowdfunding campaigns
+                        campaign-id: u0, ;; this links to existing crowdfunding campaigns
+                        enable-public-crowdfunding: public-funding-enabled, ;; smart opt-out, enabling filmmakers choose crowdfunding 
+                                            ;; (or not in the function for updating project details), added to Co-EP
+                        reward-tiers: current-reward-tiers,
+                        reward-description: current-reward-description
+                        
                         }
                 })
+
                 ;; Update pool's current rotation
                 (map-set rotating-funding-pools { pool-id: existing-pool-id } 
                     (merge 
@@ -822,7 +1048,6 @@
 
                 )
 
-                
                 ;; Go through each member in the list and reset their contribution status to false, 
                 ;; carrying the pool-id along for each next-rotation operation"
                 (fold reset-member-contributions current-member-list existing-pool-id)
@@ -848,7 +1073,6 @@
     )
 )
 
-
 ;; Reset member contributions for next rotation
     ;;@paras: member principal; existing-pool-id 
 (define-private (reset-member-contributions (member principal) (existing-pool-id uint))
@@ -873,12 +1097,113 @@
         ;; Return the existing-pool-id
         ;; This is crucial for the fold function - it needs to return the existing-pool-id as the accumulator
         ;; The fold passes this returned value to the next iteration
-        existing-pool-id
-        
-       
-
-        
-        
+        existing-pool-id 
         
     )
 )
+
+
+
+;; ====================================================================================
+;; INTEGRATION OF (execute-rotation-funding) function WITH EXISTING CROWDFUNDING MODULE
+;; =====================================================================================
+
+;; Project Details Update Function
+    ;; @func: Allow beneficiaries to update their project details before their rotation
+(define-private (create-linked-crowdfunding-campaign (existing-pool-id uint) 
+    (current-rotation-number uint))
+    (let 
+        (
+            ;; Get funding-rotation-schedule data
+            (funding-rotation-schedule-data (unwrap! 
+                                                        (map-get? funding-rotation-schedule { pool-id: existing-pool-id, rotation-number: current-rotation-number }) 
+                                                            ERR-INVALID-ROTATION))
+            
+            ;; Get project-details from funding-rotation-schedule data
+            (current-project-details (get project-details funding-rotation-schedule-data))
+
+            ;; Get current-project-description from current-project-details
+            (current-project-description (get description current-project-details))
+
+            ;; Check if filmmaker explicitly disabled public crowdfunding or not fromthe current-project-details
+            (public-funding-enabled (get enable-public-crowdfunding current-project-details))
+
+            ;; Default to REWARD-TIERS if public-funding is enabled 
+            (current-reward-tiers (if public-funding-enabled 
+                                        ;; Use configured tiers
+                                        DEFAULT-REWARD-TIERS 
+                                        ;; Pool-only, no rewards
+                                        u0
+                                  )
+
+            )
+
+            ;; Default-to REWARD-DESCRIPTION if public-funding enabled
+            (current-reward-description (if public-funding-enabled 
+                                            ;; Use reward-description for configured tiers
+                                            DEFAULT-REWARD-DESCRIPTION 
+                                            "Co-EP Pool Funded Project"
+                                        )
+            )
+
+            ;; Get beneficiary from funding-rotation-schedule data
+            (current-beneficiary (get beneficiary funding-rotation-schedule-data))
+
+            ;; Get funding-amount from funding-rotation-schedule
+            (current-funding-amount (get funding-amount funding-rotation-schedule-data))
+
+            ;; Get current-project-expected-completion from current-project-details 
+            ;; of funding-rotation-schedule
+            (current-project-expected-completion (get expected-completion current-project-details))
+
+        ) 
+         ;; Call existing crowdfunding module to create campaign
+        ;; This integrates with your existing architecture
+        (contract-call? .crowdfunding-module create-campaign 
+            current-project-description ;; project description
+            u0 ;; campaign-id will auto-generate from u0
+            current-funding-amount ;; funding-goal
+            current-project-expected-completion ;;  funding-goal
+            current-reward-tiers ;; mutlitple tiers for backers
+            current-reward-description) ;; reward-description
+        
+    )
+
+)
+
+
+;; Initialization function to set up core-contract, as well as the crowdfunding, verification and escrow contract addresses
+;; Purpose: Can only be called once by the contract owner (tx-sender at deployment) to handle initial bootstrapping
+(define-public (initialize (core principal) (crowdfunding principal) (verification principal) (escrow principal))
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (var-set crowdfunding-contract crowdfunding)
+    (var-set verification-contract verification)
+    (var-set escrow-contract escrow)
+    (ok true)
+  )
+)
+
+;; Set the crowdfunding-contract 
+;; Purpose: Dynamic module replacement
+(define-public (set-crowdfunding (crowdfunding principal))
+  (begin 
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (var-set crowdfunding-contract crowdfunding)
+    (ok true)
+  )   
+)
+
+;; Set the verification-contract 
+;; Purpose: Dynamic module replacement
+(define-public (set-verification (verification principal))
+  (begin 
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (var-set verification-contract verification)
+    (ok true)
+  )   
+)
+
+
+
+       

@@ -461,6 +461,7 @@
 ;; Function to get full details of filmmaker endorsement letter
 (define-read-only (get-filmmaker-endorsements (new-filmmaker principal) (new-id uint)) 
     (map-get? filmmaker-endorsements { filmmaker: new-filmmaker, endorsement-id: new-id })
+    
 )
 
 
