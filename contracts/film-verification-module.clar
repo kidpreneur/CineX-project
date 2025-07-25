@@ -40,6 +40,7 @@
 (define-constant standard-verified-id-valid-period (* u52560 u2)) ;; level 2 verification validity
 
 ;; ========== DATA VARIABLES ==========
+
 ;; Store the contract administrator who can verify filmmakers
 (define-data-var contract-admin principal tx-sender)
 
@@ -159,7 +160,12 @@
 ;; ========== PUBLIC FUNCTIONS ==========
 ;; Function to register a filmmaker's identity
     ;; Strategic Purpose: Establish the foundation for filmmakers to register ther identity for verification
-(define-public (register-filmmaker-id (new-filmmaker principal) (new-full-name (string-ascii 100)) (new-profile-url (string-ascii 255)) (new-identity-hash (buff 32)) (new-choice-verification-level uint) (new-choice-verification-level-expiration uint)) 
+(define-public (register-filmmaker-id (new-filmmaker principal) 
+    (new-full-name (string-ascii 100)) 
+    (new-profile-url (string-ascii 255)) 
+    (new-identity-hash (buff 32))    
+    (new-choice-verification-level uint) 
+    (new-choice-verification-level-expiration uint)) 
     (let 
         (
             ;; existing total registered filmmakers and new total registred filmmakers respectively
@@ -167,14 +173,14 @@
             (new-total-registered-filmmakers (+ u1 existing-total-registered-filmmakers))
 
             ;; check if new-filmmaker is registered (as input) in the read-only func
-            (is-filmmaker-registered (is-registered new-filmmaker))
-                 
+           ;; (is-filmmaker-registered (is-registered new-filmmaker))
+
         ) 
         ;; Ensure the caller is the filmmaker being registered
         (asserts! (is-eq new-filmmaker tx-sender) ERR-NOT-AUTHORIZED)
 
         ;; Ensure the filmmaker is not already registered
-        (asserts! (not is-filmmaker-registered) ERR-ALREADY-REGISTERED)
+        (asserts! (not (is-registered new-filmmaker)) ERR-ALREADY-REGISTERED)
 
         ;; Store the filmmaker's identity information
         (map-set filmmaker-identities new-filmmaker {
@@ -191,18 +197,19 @@
         (map-set filmmaker-portfolio-counts new-filmmaker u0) ;; no count yet until filmmaker identity is verified 
         (map-set filmmaker-endorsement-counts new-filmmaker u0) ;; Typically no endorsement yet
 
-        ;; Initialize total-registered filmmaker portfolio and total-filmmaker endorsement counts respectively
-        (var-set total-filmmaker-portfolio-counts u0)
-        (var-set total-filmmaker-endorsement-counts u0 ) 
-
         ;; Increment count of total registered filmmakers, verified/endorsed  or not
-        (ok (var-set total-registered-filmmakers new-total-registered-filmmakers))
+        (var-set total-registered-filmmakers new-total-registered-filmmakers)
+        (ok new-total-registered-filmmakers)
     )
 )
 
 ;; Function to add filmmaker's portfolio item
  ;; Strategic Purpose: Allow filmmakers to showcase their track record
-(define-public (add-filmmaker-portfolio (new-added-filmmaker principal) (new-added-project-name (string-ascii 100)) (new-added-project-url (string-ascii 255)) (new-added-project-desc (string-ascii 500)) (new-added-project-completion-year uint))
+(define-public (add-filmmaker-portfolio (new-added-filmmaker principal) 
+    (new-added-project-name (string-ascii 100)) 
+    (new-added-project-url (string-ascii 255)) 
+    (new-added-project-desc (string-ascii 500)) 
+    (new-added-project-completion-year uint))
     (let 
         (
             ;; check if new-filmmaker is registered (as input) in the read-only func
@@ -342,7 +349,10 @@
 
 ;; Function to add third-party endorsements for a filmmaker
     ;; Strategic Purpose: Enhance trust through industry recognition
- (define-public (add-filmmaker-endorsement (new-added-filmmaker principal) (new-endorser-name (string-ascii 100)) (new-endorsement-letter (string-ascii 255)) (new-endorsement-url (string-ascii 255)))
+ (define-public (add-filmmaker-endorsement (new-added-filmmaker principal) 
+    (new-endorser-name (string-ascii 100)) 
+    (new-endorsement-letter (string-ascii 255)) 
+    (new-endorsement-url (string-ascii 255)))
     (let 
         (
             ;; Get current endorsement count and Calculate new endorsement count
