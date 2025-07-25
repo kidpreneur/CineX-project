@@ -9,6 +9,8 @@
 ;; Strategic purpose: Build trust between backers and filmmakers through filmmaker identity verification
 ;; This addresses the 'Customer Relationships' component of CineX's Business Model Canvas
 
+
+
 (define-trait film-verification-trait 
     (
     ;; Function to register a filmmaker's identity for verification
@@ -18,7 +20,8 @@
                 ;;   full-name - (string-ascii 100) full legal name
                 ;;   profile-url - (string-ascii 255) link to filmmaker's professional prole
                 ;;   identity-hash - (buff 32) hash of identity document
-        (register-filmmaker-id (principal (string-ascii 100) (string-ascii 255) (buff 32) uint uint) (response bool uint))
+        (register-filmmaker-id (principal (string-ascii 100) (string-ascii 255) (buff 32) uint uint) (response uint uint))
+
 
     ;; Function to add filmmaker's previous work/portfolio
         ;; Strategic Purpose: Allow filmmakers to showcase their track record
