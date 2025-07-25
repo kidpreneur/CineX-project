@@ -14,14 +14,14 @@
 ;; Import the escrow trait interface to ensure the contract implements required functions
 (impl-trait .escrow-module-trait.escrow-trait)
 
-;; Use Crowdfunding Trait - for crowdfunding module functions
-(use-trait esc-crowdfunding-trait .crowdfunding-module-traits.crowdfunding-trait)
-
 ;; Store the principal address of the core contract 
 (define-data-var core-contract principal tx-sender)
 
 ;;  Contract principal variable as the crowdfunding module contract reference pointing to the crowdfunding contract
 (define-data-var crowdfunding-contract principal tx-sender)
+
+;;  Contract principal variable as the escrow module contract reference
+(define-data-var escrow-contract principal tx-sender)
 
 ;; Define custom error codes for standardized error handling
 (define-constant ERR-NOT-AUTHORIZED (err u4000))         ;; Caller is not authorized 
@@ -34,6 +34,13 @@
 
 ;; Mapping to track each campaign's STX funds in escrow
 (define-map campaign-escrow-balances uint uint)
+
+;; Authorization map
+(define-map authorized-withdrawals { campaign-id: uint, requester: principal } bool)
+
+;; Authorization map for fee collection permission
+(define-map authorized-fee-collections { campaign-id: uint, requester: principal } bool)
+
 
 ;; Public function: Allows any user to deposit funds into a campaign's escrow balance
 (define-public (deposit-to-campaign (campaign-id uint) (amount uint))
@@ -54,6 +61,31 @@
   )
 )
 
+;; Core contract authorizes withdrawal
+(define-public (authorize-withdrawal (campaign-id uint) (new-requester principal))
+  (begin 
+    ;; Ensure Only core contract can authorize withdrawals
+    (asserts! (is-eq tx-sender (var-get core-contract)) ERR-NOT-AUTHORIZED)
+    (map-set authorized-withdrawals { campaign-id: campaign-id, requester: new-requester } true)
+    (ok true)  
+  
+  )
+
+)
+
+;; Core contract authorizes fee collection
+(define-public (authorize-fee-collection (campaign-id uint) (requester principal))
+  (begin 
+    ;; Ensure only core contract can authorize fee collection
+    (asserts! (is-eq tx-sender (var-get core-contract)) ERR-NOT-AUTHORIZED)
+    (map-set authorized-fee-collections { campaign-id: campaign-id, requester: requester } true)
+    (ok true)
+     
+  )
+)
+
+
+
 ;; Public function: Allows the campaign owner to withdraw a specified amount from escrow
 (define-public (withdraw-from-campaign (campaign-id uint) (amount uint))
   (let
@@ -61,18 +93,15 @@
       ;; Retrieve current balance
       (current-balance (default-to u0 (map-get? campaign-escrow-balances campaign-id)))
 
-      ;; Fetch campaign details from the crowdfunding module
-      (campaign (unwrap! (contract-call? (var-get crowdfunding-contract) get-campaign campaign-id) ERR-CAMPAIGN-NOT-FOUND))
+      ;; Check authorization from authorize-withdrawal map, else default to false
+      (is-withdrawal-authorized (default-to true (map-get? authorized-withdrawals { campaign-id: campaign-id, requester: tx-sender })))
 
       ;; Calculate the new balance after withdrawal
       (new-balance (- current-balance amount))
 
-      ;; Get campaign-owner
-      (owner (get owner campaign))
-
     )
-      ;; Ensure that the caller is the campaign owner
-      (asserts! (is-eq tx-sender owner) ERR-NOT-AUTHORIZED)
+      ;; Ensure caller is authorized core for withdrawal 
+      (asserts! is-withdrawal-authorized ERR-NOT-AUTHORIZED)
 
       ;; Ensure there are enough funds to withdraw
       (asserts! (>= current-balance amount) ERR-INSUFFICIENT-BALANCE)
@@ -80,9 +109,11 @@
       ;; Update the escrow balance
       (map-set campaign-escrow-balances campaign-id new-balance)
     
-      ;; Transfer the withdrawn amount to the campaign owner
-      (unwrap! (stx-transfer? amount (as-contract tx-sender) owner) ERR-TRANSFER-FAILED)
+      ;; Transfer the withdrawn amount to the authorized requester
+      (unwrap! (stx-transfer? amount (as-contract tx-sender) tx-sender) ERR-TRANSFER-FAILED)
     
+      ;; Clear authorization after successful withdrawal
+      (map-delete authorized-withdrawals { campaign-id: campaign-id, requester: tx-sender })
       (ok true)
   )
 )
@@ -94,20 +125,17 @@
       ;; Retrieve current balance
       (current-balance (default-to u0 (map-get? campaign-escrow-balances campaign-id)))
 
-      ;; Fetch campaign details from the crowdfunding module
-      (campaign (unwrap! (contract-call? (var-get crowdfunding-contract) get-campaign campaign-id) ERR-CAMPAIGN-NOT-FOUND))
+      ;; Check authorization from authorize-fee-collection map, else default to false
+      (is-fee-collection-authorized (default-to false (map-get? authorized-fee-collections { campaign-id: campaign-id, requester: tx-sender })))
 
       ;; Calculate the new balance after fee deduction
       (new-balance (- current-balance fee-amount))
 
-      ;; Get campaign-owner
-      (owner (get owner campaign))
-
       ;;Get core-contract
       (authorized-core-contract (var-get core-contract))
     )
-      ;; Ensure that the caller is the campaign owner
-      (asserts! (is-eq tx-sender owner) ERR-NOT-AUTHORIZED)
+      ;; Ensure caller is authorized core for fee-collection-authorized
+      (asserts! is-fee-collection-authorized ERR-NOT-AUTHORIZED)
 
       ;; Ensure there are enough funds to cover the fee
       (asserts! (>= current-balance fee-amount) ERR-INSUFFICIENT-BALANCE)
@@ -117,6 +145,9 @@
     
       ;; Transfer the fee amount to the core contract address
       (unwrap! (stx-transfer? fee-amount (as-contract tx-sender) authorized-core-contract) ERR-TRANSFER-FAILED)
+
+      ;;  Clear authorization after successful fee collection
+      (map-delete authorized-fee-collections { campaign-id: campaign-id, requester: tx-sender })
     
       (ok true)
   )
@@ -128,15 +159,39 @@
   (ok (default-to u0 (map-get? campaign-escrow-balances campaign-id)))
 )
 
-;; Public function: One-time initializer to set the core contract address, as well as the crowfunding contract address
-;; Only the contract owner can initialize this
-(define-public (initialize (core principal) (funding-core-contract <esc-crowdfunding-trait>))
+;; Public function: One-time initializer to set the core contract address, as well as the crowdfunding and escrow contract addresses
+;; Purpose: Can only be called once by the contract owner (tx-sender at deployment) to handle initial bootstrapping
+(define-public (initialize (core principal) (crowdfunding principal) (escrow principal))
   (begin
     ;; Ensure that only the contract owner can initialize
     (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
     ;; Set the core-contract variable
     (var-set core-contract core)
-    (var-set crowdfunding-contract (contract-of funding-core-contract))
+    (var-set crowdfunding-contract crowdfunding)
+    (var-set escrow-contract escrow )
     (ok true)
   )
 )
+
+;; Set the crowdfunding-contract 
+;; Purpose: Dynamic module replacement
+(define-public (set-crowdfunding (crowdfunding principal))
+  (begin 
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (var-set crowdfunding-contract crowdfunding)
+    (ok true)
+  )   
+)
+
+
+;; Set the escrow-contract 
+;; Purpose: Dynamic module replacement
+(define-public (set-escrow (escrow principal))
+  (begin 
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (var-set escrow-contract escrow)
+    (ok true)
+  )   
+)
+
+
