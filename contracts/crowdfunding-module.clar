@@ -13,25 +13,16 @@
 ;; Implementing the crowdfunding trait (interface) to follow expected rules
 (impl-trait .crowdfunding-module-traits.crowdfunding-trait) 
 
-;; Add verification module trait reference
-(use-trait cf-verification-module-trait .film-verification-module-trait.film-verification-trait)
-
-;; Importing the escrow-trait, for managing safe storage of funds
-(use-trait cf-escrow-trait .escrow-module-trait.escrow-trait) 
-
 ;; ===== Core Settings =====
 
 ;; Save the core contract that can control this module (e.g., for upgrades)
 (define-data-var core-contract principal tx-sender) 
 
 ;; Add variable to store address of Verification Module
-(define-data-var verification-module principal tx-sender)
+(define-data-var verification-contract principal tx-sender)
 
-;;  Contract principal variable as the escrow module contract reference pointing to the escrow contract
+;; Add Variable to store address of Escrow module
 (define-data-var escrow-contract principal tx-sender)
-
-;; Principal variable as the rewards module contract reference
-(define-data-var rewards-contract principal tx-sender)
 
 ;; ===== Constants =====
 
@@ -63,6 +54,7 @@
 (define-constant ERR-TRANSFER-FAILED (err u2006))
 (define-constant ERR-ESCROW-BALANCE-NOT-FOUND (err u2007))
 (define-constant ERR-INVALID-VERIFICATION-LEVEL-INPUT (err u2008))
+(define-constant ERR-NO-VERIFICATION (err u2009))
 
 ;; ===== State Variables =====
 
@@ -126,20 +118,20 @@
       (authorized-core-contract (var-get core-contract))
 
       ;; Check verification status
-      (verification-result (try! (contract-call? (var-get verification-module) is-filmmaker-currently-verified tx-sender)))
+      (verification-result (unwrap! (contract-call? .film-verification-module is-filmmaker-currently-verified tx-sender) ERR-NO-VERIFICATION))
 
       ;; Check existing filmmaker identities, and current verification level
-      (current-identities (try! (contract-call? (var-get verification-module) get-filmmaker-identity tx-sender)))
-      (current-verification-level (get verification-level current-identities))
+      (current-identities (unwrap! (contract-call? .film-verification-module get-filmmaker-identity tx-sender) ERR-NO-VERIFICATION))
+      (current-verification-level (get choice-verification-level current-identities) )
       
-      ;; Get is-verified, if true, else Default to not verified
-      (is-verified (if (is-ok verification-result) 
+      ;; Get is-verified, if true, return "verified", else, Default to "not verified"
+      (is-verified (if (is-eq verification-result true) 
                           true 
                           false))
 
       ;; Default to level 0 if there's no verification level 
-      (existing-verification-level (if (and (is-some current-verification-level) (is-some is-verified)) 
-                                          (unwrap-panic! current-verification-level) 
+      (existing-verification-level (if (and (is-some current-verification-level) (is-eq is-verified true)) 
+                                          (unwrap! current-verification-level ERR-INVALID-VERIFICATION-LEVEL-INPUT) 
                                           u0))
 
     )
@@ -183,7 +175,7 @@
         (campaign (unwrap! (map-get? campaigns campaign-id) ERR-CAMPAIGN-NOT-FOUND))
       
         ;; Get the escrow balance from the campaign-escrow-balances map of the escrow-module contract
-        (escrow-balance (unwrap! (contract-call? (var-get escrow-contract) get-campaign-balance campaign-id) ERR-ESCROW-BALANCE-NOT-FOUND))
+        (escrow-balance (unwrap! (contract-call? .escrow-module get-campaign-balance campaign-id) ERR-ESCROW-BALANCE-NOT-FOUND))
       
         ;; Try to get existing contribution, or default to zero if none
         (existing-contribution (default-to 
@@ -217,7 +209,7 @@
       (asserts! (>= amount MINIMUM-CONTRIBUTION) ERR-INVALID-AMOUNT)
     
       ;; Move funds into escrow (secure temporary storage)
-      (unwrap! (contract-call? (var-get escrow-contract) deposit-to-campaign campaign-id amount) ERR-TRANSFER-FAILED)
+      (unwrap! (contract-call? .escrow-module deposit-to-campaign campaign-id amount) ERR-TRANSFER-FAILED)
     
       ;; Increase campaign's total raised amount
       (map-set campaigns campaign-id 
@@ -239,14 +231,15 @@
 
 ;; ========== CLAIM FUNDS AFTER SUCCESSFUL CAMPAIGN ==========
 
+;; Authorization by core contract to claim campaign funds 
 (define-public (claim-campaign-funds (campaign-id uint))
   (let
     (
       ;; Load campaign details
       (campaign (unwrap! (map-get? campaigns campaign-id) ERR-CAMPAIGN-NOT-FOUND))
-      
-      ;; Get the escrow balance from the campaign-escrow-balances map of the escrow-module contract
-      (escrow-balance (unwrap! (contract-call? (var-get escrow-contract) get-campaign-balance campaign-id) ERR-ESCROW-BALANCE-NOT-FOUND))
+
+      ;; Verify caller is authorized core contract
+      (authorized-core-contract (var-get core-contract))
       
       ;; Extract necessary details
       (current-total-raised (get total-raised campaign))
@@ -266,8 +259,8 @@
 
     )
     
-      ;; Make sure the person claiming is the owner
-      (asserts! (is-eq tx-sender current-owner) ERR-NOT-AUTHORIZED)
+      ;; Ensure only core contract can call this function
+      (asserts! (is-eq tx-sender authorized-core-contract) ERR-NOT-AUTHORIZED)
     
       ;; Ensure campaign is still active
       (asserts! (get is-active campaign) ERR-CAMPAIGN-INACTIVE)
@@ -288,11 +281,11 @@
           })
       )
     
-      ;; Withdraw the earned funds minus fees
-      (unwrap! (contract-call? (var-get escrow-contract) withdraw-from-campaign campaign-id withdraw-amount) ERR-TRANSFER-FAILED)
+      ;; Withdraw the earned funds minus fees since core contract already authorized these operations in escrow
+      (unwrap! (contract-call? .escrow-module withdraw-from-campaign campaign-id withdraw-amount) ERR-TRANSFER-FAILED)
      
       ;; Transfer platform's fee   
-      (unwrap! (contract-call? (var-get escrow-contract) collect-campaign-fee campaign-id fee-amount tx-sender) ERR-TRANSFER-FAILED)
+      (unwrap! (contract-call? .escrow-module collect-campaign-fee campaign-id fee-amount) ERR-TRANSFER-FAILED)
     
       ;; Track the collected fee
       (var-set total-fees-collected new-collected-fee)
@@ -306,7 +299,63 @@
 (define-read-only (get-campaign (campaign-id uint))
   (match (map-get? campaigns campaign-id)
     ;; If found, return the campaign details
-    campaign (ok campaign)
+    campaign (ok {
+      description: (get description campaign),
+      funding-goal: (get funding-goal campaign),
+      duration: (get duration campaign),
+      owner: (get owner campaign),
+      reward-tiers: (get reward-tiers campaign),
+      reward-description: (get reward-description campaign),
+      total-raised: (get total-raised campaign),
+      funds-claimed: (get funds-claimed campaign),
+      is-verified: (get is-verified campaign),
+      is-active: (get is-active campaign),
+      verification-level: (get verification-level campaign)
+    } )
+    
+    ;; If not found, return error
+    ERR-CAMPAIGN-NOT-FOUND
+  )
+)
+
+;; Ensure campaign is-active
+(define-read-only (is-active-campaign (campaign-id uint))
+  (match (map-get? campaigns campaign-id)
+    ;; If found, return the campaign details
+    campaign (ok (get is-active campaign))
+    
+    ;; If not found, return error
+    ERR-CAMPAIGN-NOT-FOUND
+  )
+)
+
+;; Get campaign funding goal
+(define-read-only (get-campaign-funding-goal (campaign-id uint))
+  (match (map-get? campaigns campaign-id)
+    ;; If found, return the campaign details
+    campaign (ok (get funding-goal campaign))
+    
+    ;; If not found, return error
+    ERR-CAMPAIGN-NOT-FOUND
+  )
+)
+
+;; Get campaign total-raised-funds
+(define-read-only (get-total-raised-funds (campaign-id uint))
+  (match (map-get? campaigns campaign-id)
+    ;; If found, return the campaign details
+    campaign (ok (get total-raised campaign))
+    
+    ;; If not found, return error
+    ERR-CAMPAIGN-NOT-FOUND
+  )
+)
+
+;; Get campaign owner
+(define-read-only (get-campaign-owner (campaign-id uint))
+  (match (map-get? campaigns campaign-id)
+    ;; If found, return the campaign details
+    campaign (ok (get owner campaign))
     
     ;; If not found, return error
     ERR-CAMPAIGN-NOT-FOUND
@@ -315,12 +364,13 @@
 
 
 ;; Get filmmaker verification information for a campaign
-(define-read-only (get-filmmaker-verification) 
-  (get is-verified campaigns)
+(define-read-only (get-filmmaker-verification (campaign-id uint)) 
+  (get is-verified (map-get? campaigns campaign-id))
 )
 ;; ========== INITIALIZE THE MODULE ==========
 
-;; Set the core contract (allowed to control this module) 
+;; Set the core contract (allowed to control this module), as well as the crowdfunding and escrow contract addresses
+;; Purpose: Can only be called once by the contract owner (tx-sender at deployment) to handle initial bootstrapping
 (define-public (initialize (core principal))
   (begin
     ;; Only the original contract owner can call this
@@ -333,7 +383,22 @@
   )
 )
 
-;; Set the escrow contract 
+;; Set verification contract 
+;; Purpose: Dynamic module replacement
+(define-public (set-verification-contract (verification principal)) 
+  (begin
+    ;; Only the original contract-owner can call this
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+
+    ;; Save the verification contract address
+    (var-set verification-contract verification)
+    (ok true)
+
+  )
+)
+
+;; Set the escrow contract
+;; Purpose: Dynamic module replacement
 (define-public (set-escrow-contract (escrow principal))
   (begin
     ;; Only the original contract-owner can call this
@@ -344,19 +409,3 @@
     (ok true)
   )
 )
-
-;; Set verification contract 
-(define-public (set-verification-contract (verification principal)) 
-  (begin
-    ;; Only the original contract-owner can call this
-    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
-
-    ;; Save the verification contract address
-    (var-set verification-module verification)
-    (ok true)
-
-  )
-)
-
-
-
