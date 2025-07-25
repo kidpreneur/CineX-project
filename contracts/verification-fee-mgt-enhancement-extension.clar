@@ -15,8 +15,6 @@
 ;;  - The platform gets a sustainable revenue model both in high market and low market periods, made possible by the value 
 ;;    of a market-based pricing system for verification and its attendant dynamic fee adjustment multiplier  
 
-;; Reference to main verification module for integration
-(use-trait fee-enhancement-verification-module .film-verification-module-trait.film-verification-trait)
 
 
 ;; ========== ADDITIONAL ERROR CONSTANTS ==========
@@ -95,10 +93,10 @@
 )
 
 ;; Set platform treasury address
-(define-public (set-platform (verification-address <fee-enhancement-verification-module>) (new-platform principal))
+(define-public (set-platform (new-platform principal))
     (begin 
         (asserts! (is-eq tx-sender 
-                            (unwrap! (contract-call? verification-address get-contract-admin) ERR-VERIFICATION-ADMIN-NOT-FOUND))
+                            (unwrap! (contract-call? .film-verification-module get-contract-admin) ERR-VERIFICATION-ADMIN-NOT-FOUND))
              ERR-NOT-AUTHORIZED)  
         (var-set platform-treasury new-platform)
         (ok new-platform)
@@ -107,10 +105,10 @@
 )
 
 ;; Set verifiers treasury address
-(define-public (set-verifier (verification-address <fee-enhancement-verification-module>) (new-verifier principal)) 
+(define-public (set-verifier (new-verifier principal)) 
     (begin 
         (asserts! (is-eq tx-sender 
-                            (unwrap! (contract-call? verification-address get-contract-admin) ERR-VERIFICATION-ADMIN-NOT-FOUND))
+                            (unwrap! (contract-call? .film-verification-module get-contract-admin) ERR-VERIFICATION-ADMIN-NOT-FOUND))
              ERR-NOT-AUTHORIZED)  
         (var-set verifiers-treasury new-verifier)
         (ok new-verifier)
@@ -149,14 +147,14 @@
 ;; Verification renewal function (complements main verification)
     ;; Strategic Purpose: Achieves added value propostion to campaign creators in the course of identity verification renewal 
         ;; this makes it easier and cheaper than getting a new one
-(define-public (verification-renewal (verification-contract <fee-enhancement-verification-module>) (new-filmmaker principal)) 
+(define-public (verification-renewal (new-filmmaker principal)) 
     (let 
         (
             ;; Check filmmaker is currently verified    
-            (verified (unwrap! (contract-call? verification-contract is-filmmaker-currently-verified tx-sender) ERR-NOT-VERIFIED))
+            (verified (unwrap! (contract-call? .film-verification-module is-filmmaker-currently-verified tx-sender) ERR-NOT-VERIFIED))
             
             ;; Check full verification data
-            (current-verification-data (unwrap! (contract-call? verification-contract get-filmmaker-identity tx-sender) ERR-FILMMAKER-NOT-FOUND))
+            (current-verification-data (unwrap! (contract-call? .film-verification-module get-filmmaker-identity tx-sender) ERR-FILMMAKER-NOT-FOUND))
 
             ;; Get current-verification-level 
             (current-verification-level  (unwrap! (get choice-verification-level current-verification-data) ERR-FILMMAKER-NOT-FOUND))
@@ -214,7 +212,7 @@
          (map-set filmmaker-verification-payments-counter new-filmmaker new-filmmaker-payment-count)
 
         ;; Call main module to update expiration 
-        (unwrap! (contract-call? verification-contract update-filmmaker-expiration-period new-filmmaker new-expiration-period) ERR-EXPIRATION-UPDATE-FAILED)
+        (unwrap! (contract-call? .film-verification-module update-filmmaker-expiration-period new-filmmaker new-expiration-period) ERR-EXPIRATION-UPDATE-FAILED)
         
         ;; For now, we'll return success indicating renewal payment processed
         (ok {
@@ -226,7 +224,7 @@
 )
 
 ;; Revenue distribution for a period function (complements main module's fee collection)
-(define-public (distribute-revenue-for-period (verification-contract <fee-enhancement-verification-module>))
+(define-public (distribute-revenue-for-period)
     (let 
         (
             ;; Check contract balance
@@ -249,7 +247,7 @@
         ) 
         ;; Ensure caller is admin (check with main module)
         (asserts! (is-eq tx-sender (unwrap! 
-                                        (contract-call? verification-contract get-contract-admin) ERR-VERIFICATION-ADMIN-NOT-FOUND))
+                                        (contract-call? .film-verification-module get-contract-admin) ERR-VERIFICATION-ADMIN-NOT-FOUND))
                         ERR-NOT-AUTHORIZED)
 
         ;; Ensure there's balance to distribute
@@ -286,11 +284,11 @@
 
 
 ;; Market-based fee adjustment (complements fixed fees in main module)
-(define-public (adjust-fee-multiplier (verification-contract <fee-enhancement-verification-module>) (new-multiplier uint)) 
+(define-public (adjust-fee-multiplier (new-multiplier uint)) 
     (begin 
         ;; Ensure caller is admin (check with main module)
         (asserts! (is-eq tx-sender 
-                            (unwrap! (contract-call? verification-contract get-contract-admin) ERR-VERIFICATION-ADMIN-NOT-FOUND)) 
+                            (unwrap! (contract-call? .film-verification-module get-contract-admin) ERR-VERIFICATION-ADMIN-NOT-FOUND)) 
                     ERR-NOT-AUTHORIZED)
 
         ;; Ensure multiplier is within acceptable range, i.e., adjustment is reasonable (between 50% and 200% of normal price)
