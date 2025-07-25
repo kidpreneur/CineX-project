@@ -23,12 +23,6 @@
 ;; Implements the Rewards Trait interface
 (impl-trait .rewards-module-trait.rewards-trait)
 
-;; Imports the rewards-nft-trait for minting NFTs as rewards
-(use-trait rew-nft-reward-trait .rewards-nft-trait.rewards-nft-trait)
-
-;; Import Crowdfunding Trait - for crowdfunding module functions
-(use-trait rew-crowdfunding-trait .crowdfunding-module-traits.crowdfunding-trait)
-
 ;; Contract principal as Core contract reference pointing to the CineX main contract
 (define-data-var core-contract principal tx-sender)
 
@@ -67,12 +61,12 @@
 ;; --- Core functionality begins ---
 
 ;; Awards a single campaign reward to a contributor
-(define-public (award-campaign-reward (campaign-id uint) (new-contributor principal) (new-reward-tier uint) (new-reward-desc (string-ascii 150)) (funding-module <rew-crowdfunding-trait>))
+(define-public (award-campaign-reward (campaign-id uint) (new-contributor principal) (new-reward-tier uint) (new-reward-desc (string-ascii 150)))
   (let
     (
 
       ;; Fetch the campaign details from the crowdfunding module
-      (campaign (unwrap! (contract-call? funding-module get-campaign campaign-id) ERR-CAMPAIGN-NOT-FOUND))
+      (campaign (unwrap! (contract-call? .crowdfunding-module get-campaign campaign-id) ERR-CAMPAIGN-NOT-FOUND))
 
       ;; Get current-owner of campaign
       (current-owner  (get owner campaign))
@@ -122,11 +116,11 @@
 )
 
 ;; Awards multiple campaign rewards at once (batch processing)
-(define-public (batch-award-campaign-rewards (campaign-id uint) (contributors (list 50 principal)) (reward-tiers (list 50 uint)) (reward-descriptions (list 50 (string-ascii 150))) (funding-module <rew-crowdfunding-trait>))
+(define-public (batch-award-campaign-rewards (campaign-id uint) (contributors (list 50 principal)) (reward-tiers (list 50 uint)) (reward-descriptions (list 50 (string-ascii 150))))
   (let
     (
       ;; Fetch the campaign details
-      (campaign (unwrap! (contract-call? funding-module get-campaign campaign-id) ERR-CAMPAIGN-NOT-FOUND))
+      (campaign (unwrap! (contract-call? .crowdfunding-module get-campaign campaign-id) ERR-CAMPAIGN-NOT-FOUND))
 
       ;; get owner of campaign
       (current-owner (get owner campaign)) 
@@ -180,23 +174,35 @@
   )
 )
 
-;; Initialization function to set up core-contract
-;; Can only be called once by the contract owner (tx-sender at deployment)
-(define-public (initialize (core principal))
+;; Initialization function to set up core-contract, as well as the crowdfunding and escrow contract addresses
+;; Purpose: Can only be called once by the contract owner (tx-sender at deployment) to handle initial bootstrapping
+(define-public (initialize (core principal) (crowdfunding principal) (rewards principal))
   (begin
     (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
     (var-set core-contract core)
+    (var-set crowdfunding-contract crowdfunding)
+    (var-set rewards-contract rewards)
     (ok true)
   )
 )
 
 ;; Set the crowdfunding-contract 
-(define-public (set-crowdfunding (module principal))
+;; Purpose: Dynamic module replacement
+(define-public (set-crowdfunding (crowdfunding principal))
   (begin 
     (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
-    (var-set crowdfunding-contract module)
+    (var-set crowdfunding-contract crowdfunding)
     (ok true)
   )   
 )
 
+;; Set the rewards-contract 
+;; Purpose: Dynamic module replacement
+(define-public (set-rewards (rewards principal))
+  (begin 
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (var-set rewards-contract rewards)
+    (ok true)
+  )   
+)
 
