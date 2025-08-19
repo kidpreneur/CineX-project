@@ -55,6 +55,7 @@
 (define-constant ERR-ESCROW-BALANCE-NOT-FOUND (err u2007))
 (define-constant ERR-INVALID-VERIFICATION-LEVEL-INPUT (err u2008))
 (define-constant ERR-NO-VERIFICATION (err u2009))
+(define-constant ERR-SYSTEM-PAUSED (err u2010))
 
 ;; ===== State Variables =====
 
@@ -89,6 +90,9 @@
 
 ;; Tracks all fees collected by the platform
 (define-data-var total-fees-collected uint u0)
+
+;; Variable to hold crowdfunding-system state of operations 'not paused (false)' until when necessary 
+(define-data-var system-paused bool false)
 
 ;; ===== Public Functions =====
 
@@ -135,7 +139,9 @@
                                           u0))
 
     )
-    
+    ;; Ensure system is not paused
+    (check-system-not-paused)
+
     ;; Take the campaign creation fee from the creator and send to core contract
     (unwrap! (stx-transfer? CAMPAIGN-FEE tx-sender authorized-core-contract) ERR-TRANSFER-FAILED)
     
@@ -201,6 +207,8 @@
         (new-count (+ current-contributions-count u1))
 
     )
+      ;; Ensure system is not paused
+      (check-system-not-paused)
     
       ;; Make sure campaign is active
       (asserts! (get is-active campaign) ERR-CAMPAIGN-INACTIVE)
@@ -261,7 +269,10 @@
     
       ;; Ensure only core contract can call this function
       (asserts! (is-eq tx-sender authorized-core-contract) ERR-NOT-AUTHORIZED)
-    
+
+      ;; Ensure system is not paused
+      (check-system-not-paused)
+
       ;; Ensure campaign is still active
       (asserts! (get is-active campaign) ERR-CAMPAIGN-INACTIVE)
     
@@ -375,6 +386,9 @@
   (begin
     ;; Only the original contract owner can call this
     (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+
+    ;; Ensure system is not paused
+    (check-system-not-paused)
     
     ;; Save the core contract address
     (var-set core-contract core)
@@ -390,6 +404,9 @@
     ;; Only the original contract-owner can call this
     (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
 
+    ;; Ensure system is not paused
+    (check-system-not-paused)
+
     ;; Save the verification contract address
     (var-set verification-contract verification)
     (ok true)
@@ -403,9 +420,45 @@
   (begin
     ;; Only the original contract-owner can call this
     (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)  
+
+    ;; Ensure system is not paused
+    (check-system-not-paused)
     
     ;; Save the escrow contract address
     (var-set escrow-contract escrow)
     (ok true)
   )
 )
+
+;; ========== EMERGENCY PAUSE FUNCTIONS ==========
+;; Function to allow only core contract to set pause state
+(define-public (set-pause-state (pause bool))
+  (let 
+    (
+      ;; Get hub 
+      (cinex-hub (var-get core-contract))
+    ) 
+    ;; Only core contract can set pause state
+    (asserts! (is-eq contract-caller cinex-hub) ERR-NOT-AUTHORIZED)
+
+    ;; Ensure system is not paused
+    (check-system-not-paused)
+
+    ;; Set the system-paused to pause
+    (var-set system-paused pause)
+    (ok true) 
+  )
+)
+
+;; Helper function to check system-not-paused
+(define-private (check-system-not-paused)
+  (let 
+    (
+      ;; Get system-paused state
+      (current-system-paused-state (var-get system-paused))
+    ) 
+    (not current-system-paused-state)
+  )
+)
+
+
