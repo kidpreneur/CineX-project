@@ -9,9 +9,20 @@
 ;; Strategic Purpose: Standardize campaign processes as backers interact with the system, contributing funds
 ;; This addresses the "Revenue Streams & Customer Relationships" component of the Business Model Canvas of CineX
 
+;; Import to use the emergency-module-trait interface 
+(use-trait crwfund-emergency-module .emergency-module-trait.emergency-module-trait)
 
-;; Implementing the crowdfunding trait (interface) to follow expected rules
+;; Import to use the module-base-trait
+(use-trait crwfund-module-base .module-base-trait.module-base-trait)
+ 
+ ;; Implement module-base-trait interface
+(impl-trait .module-base-trait.module-base-trait)
+
+;; Implement the crowdfunding trait (interface) to follow expected rules
 (impl-trait .crowdfunding-module-traits.crowdfunding-trait) 
+
+;; Implement the emergency-module-trait interface
+(impl-trait .emergency-module-trait.emergency-module-trait)
 
 ;; ===== Core Settings =====
 
@@ -23,6 +34,12 @@
 
 ;; Add Variable to store address of Escrow module
 (define-data-var escrow-contract principal tx-sender)
+
+;; ===== Module state variables =====
+(define-data-var module-version uint u1);; Current version (v1)
+(define-data-var module-active bool true);; Is module active or working? (true or false)
+(define-data-var system-paused bool false) ;; Is crowdfunding module paused? (true or false)
+
 
 ;; ===== Constants =====
 
@@ -55,7 +72,7 @@
 (define-constant ERR-ESCROW-BALANCE-NOT-FOUND (err u2007))
 (define-constant ERR-INVALID-VERIFICATION-LEVEL-INPUT (err u2008))
 (define-constant ERR-NO-VERIFICATION (err u2009))
-(define-constant ERR-SYSTEM-PAUSED (err u2010))
+(define-constant ERR-SYSTEM-NOT-PAUSED (err u2010))
 
 ;; ===== State Variables =====
 
@@ -91,8 +108,7 @@
 ;; Tracks all fees collected by the platform
 (define-data-var total-fees-collected uint u0)
 
-;; Variable to hold crowdfunding-system state of operations 'not paused (false)' until when necessary 
-(define-data-var system-paused bool false)
+
 
 ;; ===== Public Functions =====
 
@@ -378,6 +394,23 @@
 (define-read-only (get-filmmaker-verification (campaign-id uint)) 
   (get is-verified (map-get? campaigns campaign-id))
 )
+
+;; ========== BASE TRAIT IMPLEMENTATIONS ==========
+;; Get module version number
+(define-read-only (get-module-version)
+  (ok (var-get module-version)) ;; return module version number
+) 
+
+;; Check if module is active/currently working properly
+(define-read-only (is-module-active)
+  (ok (var-get module-active)) ;; return if true or false
+)
+
+;; Get module name to identify which module this is 
+(define-read-only (get-module-name) 
+  (ok "crowdfunding-module") ;; return current module name
+)
+
 ;; ========== INITIALIZE THE MODULE ==========
 
 ;; Set the core contract (allowed to control this module), as well as the crowdfunding and escrow contract addresses
@@ -386,9 +419,6 @@
   (begin
     ;; Only the original contract owner can call this
     (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
-
-    ;; Ensure system is not paused
-    (check-system-not-paused)
     
     ;; Save the core contract address
     (var-set core-contract core)
@@ -461,4 +491,20 @@
   )
 )
 
+;; Function to implement emergency withdraw
+(define-public (emergency-withdraw (amount uint) (recipient principal))
+  (begin 
+    ;; Ensure only core contract can call this emergency withdraw function
+    (asserts! (is-eq tx-sender (var-get core-contract)) ERR-SYSTEM-NOT-PAUSED)
+
+    ;; Ensure system must be paused before emergency withdrawal
+    (asserts! (var-get system-paused) ERR-SYSTEM-NOT-PAUSED)
+
+    ;; Perform emergency withdrawal
+    (try! (stx-transfer? amount (as-contract tx-sender) recipient))
+
+    (ok true)
+  
+  )
+)
 
