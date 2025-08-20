@@ -17,6 +17,19 @@
 
 
 
+;; Implement the emergency-module-trait interface
+(use-trait vrf-emergency-module .emergency-module-trait.emergency-module-trait)
+
+;; Implement the emergency-module-trait interface
+(impl-trait .emergency-module-trait.emergency-module-trait)
+
+;; Import to use the module-base-trait
+(use-trait vrf-module-base .module-base-trait.module-base-trait)
+
+;; Implement module-base-trait interface
+(impl-trait .module-base-trait.module-base-trait)
+
+
 ;; ========== ADDITIONAL ERROR CONSTANTS ==========
 (define-constant ERR-NOT-AUTHORIZED (err u2000))
 (define-constant ERR-VERIFICATION-ADMIN-NOT-FOUND (err u2001))
@@ -27,6 +40,7 @@
 (define-constant ERR-FILMMAKER-NOT-FOUND (err u2006))
 (define-constant ERR-TRANSFER (err u2007))
 (define-constant ERR-EXPIRATION-UPDATE-FAILED (err u2008))
+(define-constant ERR-SYSTEM-NOT-PAUSED (err u2009))
 
 ;; ========== ADDITIONAL CONSTANTS ==========
 ;; Discount percentages (complementing existing fees) for renewal of verification
@@ -59,8 +73,14 @@
 ;; distribution revenue period counter - Keeping track of which distribution period we're on
 (define-data-var distribution-revenue-period-counter uint u0)
 
-;; Variable to hold verification-mgt system state of operations 'not paused (false)' until when necessary 
-(define-data-var system-paused bool false)
+
+;; ===== Module state variables =====
+(define-data-var module-version uint u1) ;; Current version (v1)
+
+(define-data-var module-active bool true) ;; Is module active or working? (true or false)
+
+(define-data-var system-paused bool false) ;; Is verification-mgt system paused? (true or false)
+
 
 ;; ========== ADDITIONAL DATA MAPS ==========
 ;; Track filmmaker payment history  (complements existing fee tracking in the film-verification-module)
@@ -135,7 +155,7 @@
 )
 
 ;; Get current fees with market adjustments
-(define-read-only (get-current-verifiation-fees)
+(define-read-only (get-current-verification-fees)
     (let 
         (
             ;; Get base fees from main module constants
@@ -342,7 +362,7 @@
         ) 
         {
             fee-multiplier: current-fee-adjustment-multiplier,
-            cureent-adjusted-fee: (get-current-verifiation-fees)
+            cureent-adjusted-fee: (get-current-verification-fees)
         }
         
     )
@@ -389,4 +409,36 @@
     ) 
     (not current-system-paused-state)
   )
+)
+
+;; Function to implement emergency withdraw
+(define-public (emergency-withdraw (amount uint) (recipient principal)) 
+    (begin 
+        ;; Ensure only core contract can call this emergency withdraw function
+        (asserts! (is-eq tx-sender (var-get core-contract)) ERR-NOT-AUTHORIZED)
+
+        ;; Ensure system must be paused before emergency withdrawal
+        (asserts! (var-get system-paused) ERR-SYSTEM-NOT-PAUSED)
+
+        ;; Perform emergency withdrawal
+        (try! (stx-transfer? amount (as-contract tx-sender) recipient))
+        (ok true)
+    )
+)
+
+
+;; ========== BASE TRAIT IMPLEMENTATIONS ==========
+;; Get module version number    
+(define-read-only (get-module-version) 
+    (ok (var-get module-version)) ;; return module version number
+)
+
+;; Check if module is active/currently working properly 
+(define-read-only (is-module-active)
+    (ok (var-get module-active)) ;; return if true or false
+)
+
+;; Get module name to identify which module this is 
+(define-read-only (get-module-name)
+    (ok "verification-mgt-extension") ;; return current module name
 )
