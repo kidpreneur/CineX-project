@@ -72,6 +72,7 @@ The platform will support the following key user flows:
 *   **Film Verification:** Filmmakers can submit their projects for verification by the platform admins.
 *   **Reward Claiming:** Investors can claim their NFT rewards for supporting a successful project.
 *   **Co-EP Rotating Funding:** Filmmakers can create or join trust-based rotating funding pools ("adashe") to secure funding in cycles with other verified filmmakers.
+=======
 
 ## 5. Wireframes & Mockups (Text-based)
 
@@ -136,6 +137,7 @@ This section describes the layout and components of each page.
 *   **User Management:** A table of all users with options to view their activity or take administrative actions.
 *   **Project Management:** A table of all projects on the platform.
 
+
 #### 8. Co-EP Rotating Funding Pools Page
 
 This page is dedicated to the 'adashe' style rotating funding pools, a core feature for professional filmmakers.
@@ -178,6 +180,9 @@ This page provides a detailed view of a single rotating funding pool.
 *   **Activity Feed:** A log of all significant events in the pool (e.g., "Member X joined", "Member Y contributed", "Rotation 2 funded to Member Z").
 
 #### 10. Wallet Connection & Modals
+=======
+#### 7. Wallet Connection & Modals
+
 
 *   **Connect Wallet Modal:** A simple modal prompting the user to connect their Hiro Wallet. It will show the connection status.
 *   **Transaction Modal:** When a user initiates a transaction (e.g., funding a project), a modal will appear showing the transaction details, estimated fees, and status (pending, success, failed). This provides crucial feedback and transparency.
