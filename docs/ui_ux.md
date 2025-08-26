@@ -71,6 +71,8 @@ The platform will support the following key user flows:
 *   **Campaign Creation:** Filmmakers can create a new crowdfunding campaign by filling out a detailed form with project information, funding goals, and reward tiers.
 *   **Film Verification:** Filmmakers can submit their projects for verification by the platform admins.
 *   **Reward Claiming:** Investors can claim their NFT rewards for supporting a successful project.
+*   **Co-EP Rotating Funding:** Filmmakers can create or join trust-based rotating funding pools ("adashe") to secure funding in cycles with other verified filmmakers.
+=======
 
 ## 5. Wireframes & Mockups (Text-based)
 
@@ -135,7 +137,52 @@ This section describes the layout and components of each page.
 *   **User Management:** A table of all users with options to view their activity or take administrative actions.
 *   **Project Management:** A table of all projects on the platform.
 
+
+#### 8. Co-EP Rotating Funding Pools Page
+
+This page is dedicated to the 'adashe' style rotating funding pools, a core feature for professional filmmakers.
+
+*   **Page Layout:** A dashboard-style layout with tabs for `[My Pools]`, `[Browse Pools]`, and `[Create a Pool]`.
+
+*   **My Pools Tab:**
+    *   A list of all pools the user is a member of.
+    *   Each pool is a card with the following information:
+        *   Pool Name
+        *   Total Pool Value (e.g., 100,000 STX)
+        *   Your Contribution (e.g., 10,000 STX)
+        *   Number of Members (e.g., 5/10)
+        *   Pool Status (`Forming`, `Active`, `Completed`)
+        *   Current Rotation (e.g., "Funding: [Filmmaker Name]")
+        *   Your Turn (e.g., "You are next in line" or "Your turn is in 3 cycles")
+    *   A "View Pool" button on each card to navigate to the Pool Detail Page.
+
+*   **Browse Pools Tab:**
+    *   A list of all "forming" pools that the user is eligible to join (based on verified connections).
+    *   Each pool card shows similar information to the "My Pools" tab.
+    *   A "Request to Join" button on each card.
+
+*   **Create a Pool Tab:**
+    *   A multi-step form to create a new rotating funding pool:
+        1.  **Pool Details:** Pool Name, Contribution per Member, Max Members, Cycle Duration.
+        2.  **Legal Agreement:** A section to upload or link to a legal agreement, which will be hashed and stored on-chain.
+        3.  **Invite Members:** An interface to invite other verified filmmakers from your network of connections.
+        4.  **Review and Create:** A summary of the pool details before submitting the transaction to create the pool.
+
+#### 9. Pool Detail Page
+
+This page provides a detailed view of a single rotating funding pool.
+
+*   **Header:** Pool Name, Total Value, and Status.
+*   **Rotation Schedule:** A visual timeline or a list showing the order of beneficiaries, the scheduled funding date for each, and their funding status (`Pending`, `Funded`).
+*   **Member List:** A list of all pool members, their contribution status (`Contributed`, `Pending`), and a link to their profiles.
+*   **Contribution Section:** If the user has not yet contributed for the current cycle, a prominent "Contribute Now" button will be displayed.
+*   **Project Details:** A section to display the project details of the current beneficiary.
+*   **Activity Feed:** A log of all significant events in the pool (e.g., "Member X joined", "Member Y contributed", "Rotation 2 funded to Member Z").
+
+#### 10. Wallet Connection & Modals
+=======
 #### 7. Wallet Connection & Modals
+
 
 *   **Connect Wallet Modal:** A simple modal prompting the user to connect their Hiro Wallet. It will show the connection status.
 *   **Transaction Modal:** When a user initiates a transaction (e.g., funding a project), a modal will appear showing the transaction details, estimated fees, and status (pending, success, failed). This provides crucial feedback and transparency.
