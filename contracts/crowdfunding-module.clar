@@ -395,21 +395,6 @@
   (get is-verified (map-get? campaigns campaign-id))
 )
 
-;; ========== BASE TRAIT IMPLEMENTATIONS ==========
-;; Get module version number
-(define-read-only (get-module-version)
-  (ok (var-get module-version)) ;; return module version number
-) 
-
-;; Check if module is active/currently working properly
-(define-read-only (is-module-active)
-  (ok (var-get module-active)) ;; return if true or false
-)
-
-;; Get module name to identify which module this is 
-(define-read-only (get-module-name) 
-  (ok "crowdfunding-module") ;; return current module name
-)
 
 ;; ========== INITIALIZE THE MODULE ==========
 
@@ -522,3 +507,4 @@
 ;; Get module name to identify which module this is
 (define-read-only (get-module-name) 
     (ok "crowdfunding-module") ;; return current module name
+)
