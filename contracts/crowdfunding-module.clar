@@ -366,7 +366,13 @@
 ;; Get filmmaker verification information for a campaign
 (define-read-only (get-filmmaker-verification (campaign-id uint)) 
   (get is-verified (map-get? campaigns campaign-id))
-)
+=======
+
+=======
+
+
+
+
 ;; ========== INITIALIZE THE MODULE ==========
 
 ;; Set the core contract (allowed to control this module), as well as the crowdfunding and escrow contract addresses
@@ -409,3 +415,73 @@
     (ok true)
   )
 )
+
+=======
+
+=======
+
+;; ========== EMERGENCY PAUSE FUNCTIONS ==========
+;; Function to allow only core contract to set pause state
+(define-public (set-pause-state (pause bool))
+  (let 
+    (
+      ;; Get hub 
+      (cinex-hub (var-get core-contract))
+    ) 
+    ;; Only core contract can set pause state
+    (asserts! (is-eq contract-caller cinex-hub) ERR-NOT-AUTHORIZED)
+
+    ;; Ensure system is not paused
+    (check-system-not-paused)
+
+    ;; Set the system-paused to pause
+    (var-set system-paused pause)
+    (ok true) 
+  )
+)
+
+;; Helper function to check system-not-paused
+(define-private (check-system-not-paused)
+  (let 
+    (
+      ;; Get system-paused state
+      (current-system-paused-state (var-get system-paused))
+    ) 
+    (not current-system-paused-state)
+  )
+)
+
+;; Function to implement emergency withdraw
+(define-public (emergency-withdraw (amount uint) (recipient principal))
+  (begin 
+    ;; Ensure only core contract can call this emergency withdraw function
+    (asserts! (is-eq tx-sender (var-get core-contract)) ERR-SYSTEM-NOT-PAUSED)
+
+    ;; Ensure system must be paused before emergency withdrawal
+    (asserts! (var-get system-paused) ERR-SYSTEM-NOT-PAUSED)
+
+    ;; Perform emergency withdrawal
+    (try! (stx-transfer? amount (as-contract tx-sender) recipient))
+
+    (ok true)
+  
+  )
+)
+
+;; ========== BASE TRAIT IMPLEMENTATIONS ==========
+;; Get module version number    
+(define-read-only (get-module-version)
+    (ok (var-get module-version)) ;; return module version number
+) 
+
+;; Check if module is active/currently working properly 
+(define-read-only (is-module-active)
+    (ok (var-get module-active)) ;; return if true or false
+)
+
+;; Get module name to identify which module this is
+(define-read-only (get-module-name) 
+    (ok "crowdfunding-module") ;; return current module name
+)
+
+
