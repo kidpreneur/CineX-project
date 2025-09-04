@@ -31,19 +31,6 @@
 ;; reliance on hope-based public appeals of the crowdfunding feature; this targets professional filmmakers seeking dependable funding partnerships
 
 
-;; Import to use the module-base-trait
-(use-trait co-ep-module-base .module-base-trait.module-base-trait)
-
-;; Implement module-base-trait interface
-(impl-trait .module-base-trait.module-base-trait)
-
-
-;; Import to use the emergency-module-trait interface 
-(use-trait co-ep-emergency-module .emergency-module-trait.emergency-module-trait)
-
-;; Implement the emergency-module-trait interface
-(impl-trait .emergency-module-trait.emergency-module-trait)
-
 ;; ========================
 ;; CONSTANTS & ERROR CODES
 ;; ========================
@@ -65,19 +52,11 @@
 (define-constant ERR-PROJECT-NOT-FOUND (err u413))
 (define-constant ERR-NO-MUTUAL-PROJECT (err u414))
 (define-constant ERR-CONNECTION-NOT-FOUND (err u415))
-(define-constant ERR-SYSTEM-NOT-PAUSED (err u416))
 
 ;; Default configuration for opt-in crowdfunding reward-tiers and reward description
 (define-constant DEFAULT-REWARD-TIERS u3)
 (define-constant DEFAULT-REWARD-DESCRIPTION "Early digital access, credits, and exclusive content")
 
-
-;; ===== Module state variables =====
-(define-data-var module-version uint u1) ;; Current module-version (v1)
-
-(define-data-var module-active bool true) ;; Is module active or working? (true or false)
-
-(define-data-var system-paused bool false) ;; Is Co-EP rotating-fundings module paused? (true or false)
 
 ;; ========================
 ;; DATA STRUCTURES
@@ -138,7 +117,7 @@
     })
     
 
-;; Funding rotation Schedule
+;; Fundng rotation Schedule
 (define-map funding-rotation-schedule { pool-id: uint, rotation-number: uint } { 
     beneficiary: principal,
     funding-amount: uint,
@@ -187,8 +166,6 @@
 
 ;; Add variable to store address of Escrow Module
 (define-data-var escrow-contract principal tx-sender)
-
-
 ;; ==================================================
 ;; PROJECT ENTRY FUNCTIONS
 ;; ================================================
@@ -215,9 +192,6 @@
 
         ;; Ensure filmmaker is verified
         (asserts! identity-is-verified ERR-IDENTITY-NOT-VERIFIED)
-
-        ;; Ensure system is not paused
-        (check-system-not-paused)
 
         ;; Store the new project with verified stating "false" in the interim until quoted collaborators 
         (map-set filmmaker-projects {filmmaker: tx-sender, project-id: new-project-count } {
@@ -262,9 +236,6 @@
         )
         ;; Ensure caller is indeed a collaborator
         (asserts! is-collaborator ERR-NOT-AUTHORIZED)
-
-        ;; Ensure system is not paused
-        (check-system-not-paused)
 
         ;; Update project as verified
         (map-set filmmaker-projects {filmmaker: tx-sender, project-id: new-project-id } 
@@ -317,9 +288,6 @@
             (target-mutual-projects-endorsement-score (calculate-endorsement-score target-mutual-verified-projects-count))
         ) 
         (asserts! (or (is-eq tx-sender new-requester) (is-eq tx-sender new-target)) ERR-NOT-AUTHORIZED)
-
-        ;; Ensure system is not paused
-        (check-system-not-paused)
 
         ;; Ensure at least one mutual project count exists
         (asserts! (or (>= requester-mutual-verified-projects-count u0) (>= target-mutual-verified-projects-count u0)) ERR-INVALID-ROTATION)
@@ -408,7 +376,7 @@
 ;; Get estabiished social connections
 (define-read-only (get-social-connections (new-requester principal) (new-target principal)) 
     (match (map-get? member-social-connections { requester: new-requester, target: new-target }) 
-        established-connections (ok "established-connections") 
+        establshed-connections (ok "established-connections")
             ERR-CONNECTION-NOT-FOUND)
 )
 
@@ -447,9 +415,6 @@
         ) 
         ;; Ensure tx-sender has verified project connections
         (asserts! (is-eq pool-creator-verified-projects true) ERR-NOT-AUTHORIZED)
-
-        ;; Ensure system is not paused
-        (check-system-not-paused)
 
         ;; Ensure pool size is no less than 1 and no more than 20
         (asserts! (and (> standard-max-members u1) (<= standard-max-members u20)) ERR-INVALID-POOL-SIZE)
@@ -537,9 +502,6 @@
         ;; Ensure joining conditions are validated
             ;; Check that pool-status of rotating-funding-pools is actively "forming", else, trigger error
         (asserts! (is-eq current-pool-status "forming") ERR-POOL-INACTIVE)
-
-        ;; Ensure system is not paused
-        (check-system-not-paused)
             
             ;; Check that current-pool-members number is lesser than max-members of rotatng-funding-pools, else pool is full
         (asserts! (> pool-members pool-max-members) ERR-POOL-FULL)
@@ -713,9 +675,6 @@
         ;; Ensure pool status of current-pool-data is "active"
         (asserts! (is-eq current-pool-status "active") ERR-POOL-INACTIVE)
 
-        ;; Ensure system is not paused
-        (check-system-not-paused)
-
         ;; Ensure has-contributed from pool-individual-members is NOT yet contributed, else ERR-ALREADY-FUNDED
         (asserts! (is-eq contribution-status false) ERR-ALREADY-FUNDED)
 
@@ -813,9 +772,6 @@
             ;; Ensure current-pool-status is same as "active"
         (asserts! (is-eq current-pool-status "active") ERR-POOL-INACTIVE)
 
-        ;; Ensure system is not paused
-        (check-system-not-paused)
-
             ;; Ensure funding's current-completion-status is "pending"
         (asserts! (is-eq funding-completion-status "pending") ERR-ALREADY-FUNDED)
 
@@ -905,9 +861,6 @@
 
         ;; Ensure tx-sender is beneficiary updating their project details
         (asserts! (is-eq tx-sender current-beneficiary) ERR-NOT-AUTHORIZED)
-
-        ;; Ensure system is not paused
-        (check-system-not-paused)
 
         ;; Ensure funding's current-completion-status is "pending"
         (asserts! (is-eq funding-completion-status "pending") ERR-ALREADY-FUNDED)
@@ -1205,7 +1158,7 @@
 
         ) 
          ;; Call existing crowdfunding module to create campaign
-        ;; This integrates with existing architecture
+        ;; This integrates with your existing architecture
         (contract-call? .crowdfunding-module create-campaign 
             current-project-description ;; project description
             u0 ;; campaign-id will auto-generate from u0
@@ -1236,10 +1189,6 @@
 (define-public (set-crowdfunding (crowdfunding principal))
   (begin 
     (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
-
-    ;; Ensure system is not paused
-    (check-system-not-paused)
-
     (var-set crowdfunding-contract crowdfunding)
     (ok true)
   )   
@@ -1250,99 +1199,10 @@
 (define-public (set-verification (verification principal))
   (begin 
     (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
-
-    ;; Ensure system is not paused
-    (check-system-not-paused)
-    
     (var-set verification-contract verification)
     (ok true)
   )   
 )
 
-;; ========== EMERGENCY PAUSE & WITHDRAW FUNCTIONS ==========
-;; Function to allow only core contract to set pause state
-(define-public (set-pause-state (pause bool))
-  (let 
-    (
-      ;; Get hub 
-      (cinex-hub (var-get core-contract))
-    ) 
-    ;; Only core contract can set pause state
-    (asserts! (is-eq contract-caller cinex-hub) ERR-NOT-AUTHORIZED)
-
-    ;; Ensure system is not paused
-    (check-system-not-paused)
-
-    ;; Set the system-paused to pause
-    (var-set system-paused pause)
-    (ok true) 
-  )
-)
-
-;; Function to implement emergency withdraw 
-(define-public (emergency-withdraw (amount uint) (recipient principal))
-    (begin 
-        ;; Ensure only core contract can call this emergency withdraw function
-        (asserts! (is-eq tx-sender (var-get core-contract)) ERR-NOT-AUTHORIZED)
-
-        ;; Ensure system must be paused before emergency withdrawal      
-        (asserts! (var-get system-paused) ERR-SYSTEM-NOT-PAUSED)
-
-        ;; Perform emergency withdrawal    
-        (try! (stx-transfer? amount (as-contract tx-sender) recipient))
-
-        (ok true)
-    )
-)
-
-;; Helper function to check system-not-paused
-(define-private (check-system-not-paused)
-  (let 
-    (
-      ;; Get system-paused state
-      (current-system-paused-state (var-get system-paused))
-    ) 
-    (not current-system-paused-state)
-  )
-)
 
 
-;; ==================================================
-;; READ-ONLY FUNCTIONS FOR FRONTEND INTEGRATION
-;; ==================================================
-;; Get pool information from Esusu/Rotating funding Pool Structure
-(define-read-only (get-pool-info (existing-pool-id uint)) 
-    (map-get? rotating-funding-pools {pool-id: existing-pool-id })
-) 
-
-;; Get member information from Pool Member Structure
-(define-read-only (get-member-info (existing-pool-id uint) (member-address principal) )
-    (map-get? pool-individual-members { pool-id: existing-pool-id, member-address: member-address })
-) 
-
-;; Get rotation schedule from Funding rotation Schedule
-(define-read-only (get-rotation-schedule (existing-pool-id uint) (current-rotation-number uint)) 
-    (map-get? funding-rotation-schedule { pool-id: existing-pool-id, rotation-number: current-rotation-number })
-) 
-
-;; Get pool performance metrics from Pool Analytics & Performance
-(define-read-only (get-pool-performance-metrics (existing-pool-id uint)) 
-    (map-get? pool-performance { pool-id: existing-pool-id})
-) 
-
-
-;; ========== BASE TRAIT IMPLEMENTATIONS ==========
-;; Get module version number    
-(define-read-only (get-module-version)
-    (ok (var-get module-version)) ;; return module version number
-) 
-
-;; Check if module is active/currently working properly 
-(define-read-only (is-module-active)
-    (ok (var-get module-active)) ;; return if true or false
-)
-
-;; Get module name to identify which module this is
-(define-read-only (get-module-name) 
-    (ok "Co-EP-rotating-funding-module") ;; return current module name
-) 

@@ -17,19 +17,6 @@
 
 
 
-;; Implement the emergency-module-trait interface
-(use-trait vrf-emergency-module .emergency-module-trait.emergency-module-trait)
-
-;; Implement the emergency-module-trait interface
-(impl-trait .emergency-module-trait.emergency-module-trait)
-
-;; Import to use the module-base-trait
-(use-trait vrf-module-base .module-base-trait.module-base-trait)
-
-;; Implement module-base-trait interface
-(impl-trait .module-base-trait.module-base-trait)
-
-
 ;; ========== ADDITIONAL ERROR CONSTANTS ==========
 (define-constant ERR-NOT-AUTHORIZED (err u2000))
 (define-constant ERR-VERIFICATION-ADMIN-NOT-FOUND (err u2001))
@@ -40,7 +27,6 @@
 (define-constant ERR-FILMMAKER-NOT-FOUND (err u2006))
 (define-constant ERR-TRANSFER (err u2007))
 (define-constant ERR-EXPIRATION-UPDATE-FAILED (err u2008))
-(define-constant ERR-SYSTEM-NOT-PAUSED (err u2009))
 
 ;; ========== ADDITIONAL CONSTANTS ==========
 ;; Discount percentages (complementing existing fees) for renewal of verification
@@ -56,10 +42,6 @@
 (define-constant VERIFIERS-SHARE u30) ;; 30% to verification team
 
 ;; ========== ADDITIONAL DATA VARIABLES ==========
-
-;; Save the core contract that can control this module (e.g., for upgrades)
-(define-data-var core-contract principal tx-sender) 
-
 ;; Dynamic Fee- Adjustment Multiplier (complements fixed verification fees in main film verification module)  
 (define-data-var fee-adjustment-multiplier uint u100) ;; works as a Current price multiplier (100 = normal pricing, 150 = 50% more expensive)
 
@@ -72,15 +54,6 @@
 
 ;; distribution revenue period counter - Keeping track of which distribution period we're on
 (define-data-var distribution-revenue-period-counter uint u0)
-
-
-;; ===== Module state variables =====
-(define-data-var module-version uint u1) ;; Current version (v1)
-
-(define-data-var module-active bool true) ;; Is module active or working? (true or false)
-
-(define-data-var system-paused bool false) ;; Is verification-mgt system paused? (true or false)
-
 
 ;; ========== ADDITIONAL DATA MAPS ==========
 ;; Track filmmaker payment history  (complements existing fee tracking in the film-verification-module)
@@ -155,7 +128,7 @@
 )
 
 ;; Get current fees with market adjustments
-(define-read-only (get-current-verification-fees)
+(define-read-only (get-current-verifiation-fees)
     (let 
         (
             ;; Get base fees from main module constants
@@ -216,9 +189,6 @@
          ;; Ensure caller is the filmmaker
          (asserts! (is-eq tx-sender new-filmmaker) ERR-NOT-AUTHORIZED)
 
-         ;; Ensure system is not paused
-         (check-system-not-paused)
-
          ;; Ensure renewal isn't too early (at least 75% through current period)
             ;;by checking that current blockheight is greater than earliest allowed time for renewal 
                 ;; Prevents spamming renewals so users can't renew immediately after registering, the rules therefore fair to both basic and premium verification levels
@@ -226,6 +196,8 @@
 
         ;; Collect renewal fee (goes to contract, will be distributed later)
         (unwrap! (stx-transfer? appropriate-renewal-fee tx-sender (as-contract tx-sender)) ERR-TRANSFER)
+
+        
 
         ;; Record payment in filmmaker-payent-history map
         (map-set filmmaker-payment-history {filmmaker: new-filmmaker, payment-index: new-filmmaker-payment-count } {
@@ -278,9 +250,6 @@
                                         (contract-call? .film-verification-module get-contract-admin) ERR-VERIFICATION-ADMIN-NOT-FOUND))
                         ERR-NOT-AUTHORIZED)
 
-         ;; Ensure system is not paused
-         (check-system-not-paused)
-
         ;; Ensure there's balance to distribute
         (asserts! (> contract-balance u0) ERR-INSUFFICIENT-BALANCE)
 
@@ -325,9 +294,6 @@
         ;; Ensure multiplier is within acceptable range, i.e., adjustment is reasonable (between 50% and 200% of normal price)
         (asserts! (or (>= new-multiplier MIN-FEE-MULTIPLIER) (<= new-multiplier MAX-FEE-MULTIPLIER)) ERR-INVALID-FEE-ADJUSTMENT)
 
-         ;; Ensure system is not paused
-         (check-system-not-paused)
-
         ;; Update the fee multiplier
         (var-set fee-adjustment-multiplier new-multiplier)
         (ok new-multiplier)
@@ -362,7 +328,7 @@
         ) 
         {
             fee-multiplier: current-fee-adjustment-multiplier,
-            cureent-adjusted-fee: (get-current-verification-fees)
+            cureent-adjusted-fee: (get-current-verifiation-fees)
         }
         
     )
@@ -379,66 +345,3 @@
 )
 
 
-
-;; ========== EMERGENCY PAUSE FUNCTIONS ==========
-;; Function to allow only core contract to set pause state
-(define-public (set-pause-state (pause bool))
-  (let 
-    (
-      ;; Get hub 
-      (cinex-hub (var-get core-contract))
-    ) 
-    ;; Only core contract can set pause state
-    (asserts! (is-eq contract-caller cinex-hub) ERR-NOT-AUTHORIZED)
-
-    ;; Ensure system is not paused
-    (check-system-not-paused)
-
-    ;; Set the system-paused to pause
-    (var-set system-paused pause)
-    (ok true) 
-  )
-)
-
-;; Helper function to check system-not-paused
-(define-private (check-system-not-paused)
-  (let 
-    (
-      ;; Get system-paused state
-      (current-system-paused-state (var-get system-paused))
-    ) 
-    (not current-system-paused-state)
-  )
-)
-
-;; Function to implement emergency withdraw
-(define-public (emergency-withdraw (amount uint) (recipient principal)) 
-    (begin 
-        ;; Ensure only core contract can call this emergency withdraw function
-        (asserts! (is-eq tx-sender (var-get core-contract)) ERR-NOT-AUTHORIZED)
-
-        ;; Ensure system must be paused before emergency withdrawal
-        (asserts! (var-get system-paused) ERR-SYSTEM-NOT-PAUSED)
-
-        ;; Perform emergency withdrawal
-        (try! (stx-transfer? amount (as-contract tx-sender) recipient))
-        (ok true)
-    )
-)
-
-
-;; ========== BASE TRAIT IMPLEMENTATIONS ==========
-;; Get module version number    
-(define-read-only (get-module-version) 
-    (ok (var-get module-version)) ;; return module version number
-)
-
-;; Check if module is active/currently working properly 
-(define-read-only (is-module-active)
-    (ok (var-get module-active)) ;; return if true or false
-)
-
-;; Get module name to identify which module this is 
-(define-read-only (get-module-name)
-    (ok "verification-mgt-extension") ;; return current module name
-)
