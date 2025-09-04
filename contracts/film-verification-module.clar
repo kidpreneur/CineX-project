@@ -3,26 +3,12 @@
 ;; Created: 2025
 ;; version: 1.0.0
 
-
-
 ;;;; ============= Description ==============
 ;; Implementation of Film verification module trait
 ;; Strategic Purpose: Build trust between backers and filmmakers through identity verification
 ;; This addresses the "Customer Relationships" component of the Business Model Canvas of CineX
 
 ;; ========== TRAIT REFERENCE ==========
-;; Import to use the emergency-module-trait interface 
-(use-trait film-vrf-emergency-module .emergency-module-trait.emergency-module-trait)
-
-;; Implement the emergency-module-trait interface
-(impl-trait .emergency-module-trait.emergency-module-trait)
-
-;; Import to use the module-base-trait
-(use-trait film-vrf-module-base .module-base-trait.module-base-trait)
-
-;; Implement module-base-trait interface
-(impl-trait .module-base-trait.module-base-trait)
-
 ;; Implementing the film-verification trait to ensure standard interface
 (impl-trait .film-verification-module-trait.film-verification-trait)
 
@@ -37,7 +23,6 @@
 (define-constant ERR-VERIFICATION-EXPIRED (err u1007))
 (define-constant ERR-TRANSFER (err u1008))
 (define-constant ERR-NOT-VERIFIED (err u1009 ))
-(define-constant ERR-SYSTEM-NOT-PAUSED (err u1010))
 
 
 ;; ========== CONSTANTS ==========
@@ -79,13 +64,6 @@
 
 ;; Add data variable to store renewal extension contract reference
 (define-data-var renewal-extension-contract principal tx-sender)
-
-;; ===== Module state variables =====
-(define-data-var module-version uint u1);; Current version (v1)
-
-(define-data-var module-active bool true);; Is module active or working? (true or false)
-
-(define-data-var system-paused bool false) ;; Is film-verification system paused? (true or false)
 
 ;; ========== DATA MAPS ==========
 ;; Store filmmaker identity information
@@ -204,9 +182,6 @@
         ;; Ensure the filmmaker is not already registered
         (asserts! (not (is-registered new-filmmaker)) ERR-ALREADY-REGISTERED)
 
-        ;; Ensure system is not paused
-        (check-system-not-paused)
-
         ;; Store the filmmaker's identity information
         (map-set filmmaker-identities new-filmmaker {
             full-name: new-full-name, 
@@ -253,9 +228,6 @@
         ;; Ensure filmmaker is registered
         (asserts! is-filmmaker-registered ERR-FILMMAKER-NOT-FOUND)
 
-        ;; Ensure system is not paused
-        (check-system-not-paused)
-
         ;; Store the portfolio item
         (map-set filmmaker-portfolios { filmmaker: new-added-filmmaker, portfolio-id: new-filmmaker-counts } {
             project-name: new-added-project-name, 
@@ -299,9 +271,6 @@
         ) 
         ;; Ensure caller is admin
         (asserts! (is-admin) ERR-NOT-AUTHORIZED)
-
-        ;; Ensure system is not paused
-        (check-system-not-paused)
 
         ;; Ensure existing verification level data 
         (if (is-eq existing-choice-verification-level-data basic-verification-level) 
@@ -360,9 +329,6 @@
         ;; Ensure caller is authorized (either admin or the renewal extension contract)
         (asserts! (or (is-admin) (is-eq tx-sender current-renewal-extension-contract)) ERR-NOT-AUTHORIZED)
 
-        ;; Ensure system is not paused
-        (check-system-not-paused)
-
         ;; Ensure filmmaker is currently verified
         (asserts! (is-ok currently-verified) ERR-NOT-VERIFIED)
 
@@ -403,9 +369,6 @@
          ;; Ensure the caller is the filmmaker, admin, or from an approved endorser
          (asserts! (or (is-eq tx-sender new-added-filmmaker) (is-admin) (is-endorser)) ERR-NOT-AUTHORIZED)
 
-         ;; Ensure system is not paused
-        (check-system-not-paused)
-
         ;; Ensure filmmaker is registered
         (asserts! is-filmmaker-registered ERR-FILMMAKER-NOT-FOUND)
 
@@ -430,10 +393,6 @@
 (define-public (set-contract-admin (new-admin principal)) 
     (begin 
         (asserts! (is-admin) ERR-NOT-AUTHORIZED)
-
-        ;; Ensure system is not paused
-        (check-system-not-paused)
-
         (ok (var-set contract-admin new-admin))
     )
 )
@@ -450,10 +409,6 @@
 (define-public (set-renewal-extension-contract (extension-contract principal))
     (begin
         (asserts! (is-admin) ERR-NOT-AUTHORIZED)
-
-        ;; Ensure system is not paused
-        (check-system-not-paused)
-
         (ok (var-set renewal-extension-contract extension-contract))
     )
 )
@@ -463,10 +418,6 @@
 (define-public (set-third-party-endorser (new-endorser principal)) 
     (begin 
         (asserts! (is-admin) ERR-NOT-AUTHORIZED)
-
-        ;; Ensure system is not paused
-        (check-system-not-paused)
-
         (ok (var-set third-party-endorser new-endorser))
     )
 )
@@ -549,65 +500,5 @@
     (ok (var-get contract-admin))
 )
 
-;; ========== EMERGENCY PAUSE FUNCTIONS ==========
-;; Function to allow only core contract to set pause state
-(define-public (set-pause-state (pause bool))
-  (let 
-    (
-      ;; Get hub 
-      (cinex-hub (var-get core-contract))
-    ) 
-    ;; Only core contract can set pause state
-    (asserts! (is-eq contract-caller cinex-hub) ERR-NOT-AUTHORIZED)
-
-    ;; Ensure system is not paused
-    (check-system-not-paused)
-
-    ;; Set the system-paused to pause
-    (var-set system-paused pause)
-    (ok true) 
-  )
-)
-
-;; Helper function to check system-not-paused
-(define-private (check-system-not-paused)
-  (let 
-    (
-      ;; Get system-paused state
-      (current-system-paused-state (var-get system-paused))
-    ) 
-    (not current-system-paused-state)
-  )
-)
-
-;; Function to implement emergency withdraw
-(define-public (emergency-withdraw (amount uint) (recipient principal)) 
-    (begin
-        ;; Ensure only core contract can call this emergency withdraw function
-        (asserts! (is-eq tx-sender (var-get core-contract)) ERR-NOT-AUTHORIZED)
-
-        ;; Ensure system must be paused before emergency withdrawal
-        (asserts! (var-get system-paused) ERR-SYSTEM-NOT-PAUSED)
-
-        ;; Perform emergency withdrawal
-        (try! (stx-transfer? amount (as-contract tx-sender) recipient))
-        (ok true)
-    )
-)
 
 
-;; ========== BASE TRAIT IMPLEMENTATIONS ==========
-;; Get module version number    
-(define-read-only (get-module-version) 
-    (ok (var-get module-version)) ;; return module version number
-)
- 
-;; Check if module is active/currently working properly 
-(define-read-only (is-module-active)
-    (ok (var-get module-active)) ;; return if true or false
-)
-
-;; Get module name to identify which module this is / ;; return current module name
-(define-read-only (get-module-name)
-    (ok "film-verification-module")
-)

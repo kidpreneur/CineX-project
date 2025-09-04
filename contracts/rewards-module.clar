@@ -20,19 +20,6 @@
 ;; Strategic Purpose: Manages backer incentives and value delivery
 ;; This addresses the "Value Proposition component of the Business Model of CineX
 
-
-;; Import to use the emergency-module-trait interface
-(use-trait rew-emergency-module .emergency-module-trait.emergency-module-trait)
-
-;; Implement the emergency-module-trait interface
-(impl-trait .emergency-module-trait.emergency-module-trait)
-
-;; Import to use the module-base-trait
-(use-trait rew-module-base .module-base-trait.module-base-trait)
-
-;; Implement module-base-trait interface
-(impl-trait .module-base-trait.module-base-trait)
-
 ;; Implements the Rewards Trait interface
 (impl-trait .rewards-module-trait.rewards-trait)
 
@@ -59,7 +46,6 @@
 (define-constant ERR-REWARD-MINT-FAILED (err u3004))
 (define-constant ERR-LISTS-UNEQUAL-LENGTH (err u3005))
 (define-constant ERR-REWARD-NOT-FOUND (err u3006))
-(define-constant ERR-SYSTEM-NOT-PAUSED (err u3007))
 
 ;; Map to track each contributor's reward for each campaign
 (define-map contributor-rewards { campaign-id: uint, contributor: principal } {
@@ -71,15 +57,6 @@
 
 ;; Tracks the total minting fees collected across all rewards
 (define-data-var total-minting-fees uint u0)
-
-
-;; ===== Module state variables =====
-(define-data-var module-version uint u1);; Current version (v1)
-
-(define-data-var module-active bool true);; Is module active or working? (true or false)
-
-(define-data-var system-paused bool false) ;; Is rewards-module system paused? (true or false)
-
 
 ;; --- Core functionality begins ---
 
@@ -114,9 +91,6 @@
     )
       ;; Ensure that the caller is the owner of the campaign
       (asserts! (is-eq tx-sender current-owner) ERR-NOT-AUTHORIZED)
-
-      ;; Ensure system is not paused
-      (check-system-not-paused)
     
       ;; Ensure that the reward tier is within valid range
       (asserts! (and (> new-reward-tier u0) (<= new-reward-tier current-reward-tiers)) ERR-INVALID-REWARD-TIER)
@@ -173,9 +147,6 @@
     )
       ;; Validate caller is the campaign owner
       (asserts! (is-eq tx-sender current-owner) ERR-NOT-AUTHORIZED)
-
-      ;; Ensure system is not paused
-      (check-system-not-paused)
     
       ;; Ensure input lists (contributors, tiers, descriptions) are the same length
       (asserts! (and 
@@ -220,10 +191,6 @@
 (define-public (set-crowdfunding (crowdfunding principal))
   (begin 
     (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
-
-    ;; Ensure system is not paused
-    (check-system-not-paused)
-
     (var-set crowdfunding-contract crowdfunding)
     (ok true)
   )   
@@ -234,81 +201,8 @@
 (define-public (set-rewards (rewards principal))
   (begin 
     (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
-
-    ;; Ensure system is not paused
-    (check-system-not-paused)
-
     (var-set rewards-contract rewards)
     (ok true)
   )   
 )
-
-
-
-;; ========== EMERGENCY PAUSE FUNCTIONS ==========
-;; Function to allow only core contract to set pause state
-(define-public (set-pause-state (pause bool))
-  (let 
-    (
-      ;; Get hub 
-      (cinex-hub (var-get core-contract))
-    ) 
-    ;; Only core contract can set pause state
-    (asserts! (is-eq contract-caller cinex-hub) ERR-NOT-AUTHORIZED)
-
-    ;; Ensure system is not paused
-    (check-system-not-paused)
-
-    ;; Set the system-paused to pause
-    (var-set system-paused pause)
-    (ok true) 
-  )
-)
-
-;; Helper function to check system-not-paused
-(define-private (check-system-not-paused)
-  (let 
-    (
-      ;; Get system-paused state
-      (current-system-paused-state (var-get system-paused))
-    ) 
-    (not current-system-paused-state)
-  )
-)
-
-;; Function to implement emergency withdraw
-(define-public (emergency-withdraw (amount uint) (recipient principal)) 
-  (begin
-    ;; Ensure only core contract can call this emergency withdraw function
-    (asserts! (is-eq tx-sender (var-get core-contract)) ERR-NOT-AUTHORIZED)
-
-    ;; Ensure system must be paused before emergency withdrawal
-    (asserts! (var-get system-paused) ERR-SYSTEM-NOT-PAUSED)
-
-    ;; Perform emergency withdrawal
-    (try! (stx-transfer? amount (as-contract tx-sender) recipient))
-    (ok true)
-  )
-
-)
-
-
-;; ========== BASE TRAIT IMPLEMENTATIONS ==========
-
-;; Get module version number 
-(define-read-only (get-module-version)
-  (ok (var-get module-version)) ;; return module version number
-)   
-
-;; Check if module is active/currently working properly 
-(define-read-only (is-module-active)
-  (ok (var-get module-active)) ;; return if true or false
-)
-
-;; Get module name to identify which module this is 
-(define-read-only (get-module-name) 
-  (ok "rewards-module") ;; return current module name
-)
-
-
 
