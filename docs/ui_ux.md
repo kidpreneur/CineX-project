@@ -74,7 +74,10 @@ The platform will support the following key user flows:
 *   **Co-EP Rotating Funding:** Filmmakers can create or join trust-based rotating funding pools ("adashe") to secure funding in cycles with other verified filmmakers.
 
 =======
+
 =======
+=======
+
 
 
 ## 5. Wireframes & Mockups (Text-based)
@@ -143,6 +146,9 @@ This section describes the layout and components of each page.
 
 =======
 
+=======
+
+
 
 #### 8. Co-EP Rotating Funding Pools Page
 
@@ -188,8 +194,11 @@ This page provides a detailed view of a single rotating funding pool.
 #### 10. Wallet Connection & Modals
 
 =======
+
+=======
 =======
 #### 7. Wallet Connection & Modals
+
 
 
 

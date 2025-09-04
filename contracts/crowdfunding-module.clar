@@ -366,9 +366,10 @@
 ;; Get filmmaker verification information for a campaign
 (define-read-only (get-filmmaker-verification (campaign-id uint)) 
   (get is-verified (map-get? campaigns campaign-id))
-)
+=======
 
 =======
+
 
 
 
@@ -414,6 +415,8 @@
     (ok true)
   )
 )
+
+=======
 
 =======
 
@@ -480,4 +483,5 @@
 (define-read-only (get-module-name) 
     (ok "crowdfunding-module") ;; return current module name
 )
+
 
