@@ -1306,6 +1306,10 @@
   )
 )
 
+;; Get system-paused status
+(define-read-only (is-system-paused) 
+  (var-get system-paused)
+)
 
 ;; ==================================================
 ;; READ-ONLY FUNCTIONS FOR FRONTEND INTEGRATION

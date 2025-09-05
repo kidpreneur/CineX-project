@@ -491,6 +491,12 @@
   )
 )
 
+;; Get system-paused status
+(define-read-only (is-system-paused) 
+  (var-get system-paused)
+)
+
+
 ;; Function to implement emergency withdraw
 (define-public (emergency-withdraw (amount uint) (recipient principal))
   (begin 
@@ -507,18 +513,3 @@
   
   )
 )
-
-;; ========== BASE TRAIT IMPLEMENTATIONS ==========
-;; Get module version number    
-(define-read-only (get-module-version)
-    (ok (var-get module-version)) ;; return module version number
-) 
-
-;; Check if module is active/currently working properly 
-(define-read-only (is-module-active)
-    (ok (var-get module-active)) ;; return if true or false
-)
-
-;; Get module name to identify which module this is
-(define-read-only (get-module-name) 
-    (ok "crowdfunding-module") ;; return current module name

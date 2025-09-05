@@ -276,6 +276,12 @@
   )
 )
 
+;; Get system-paused status
+(define-read-only (is-system-paused) 
+  (var-get system-paused)
+)
+
+
 ;; Function to implement emergency withdraw
 (define-public (emergency-withdraw (amount uint) (recipient principal)) 
   (begin
