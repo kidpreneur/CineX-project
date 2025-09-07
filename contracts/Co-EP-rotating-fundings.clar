@@ -376,7 +376,7 @@
 ;; Get estabiished social connections
 (define-read-only (get-social-connections (new-requester principal) (new-target principal)) 
     (match (map-get? member-social-connections { requester: new-requester, target: new-target }) 
-        establshed-connections (ok "established-connections") 
+        establshed-connections (ok "established-connections")
             ERR-CONNECTION-NOT-FOUND)
 )
 
@@ -1205,5 +1205,8 @@
 )
 
 
+;; Get system-paused status
+(define-read-only (is-system-paused) 
+  (var-get system-paused)
+)
 
-       
