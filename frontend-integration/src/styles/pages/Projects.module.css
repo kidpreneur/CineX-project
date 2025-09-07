@@ -1,0 +1,49 @@
+.projectsPage {
+  width: 100%;
+}
+
+.header {
+  padding: 2rem;
+  text-align: center;
+  border-bottom: 1px solid #333;
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.searchAndFilter {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.searchInput, .filterSelect {
+  padding: 0.8rem;
+  font-size: 1rem;
+  border: 1px solid #444;
+  background-color: #222;
+  color: #F5F5DC;
+  border-radius: 5px;
+}
+
+.projectGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 0 2rem;
+}
+
+.projectCard {
+  background-color: #222;
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+  transition: transform 0.2s ease-in-out;
+}
+
+.projectCard:hover {
+  transform: translateY(-5px);
+}

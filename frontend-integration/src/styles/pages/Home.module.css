@@ -1,0 +1,41 @@
+.home {
+  width: 100%;
+}
+
+.hero {
+  padding: 4rem 2rem;
+  background-color: #222; /* A slightly lighter shade for the hero */
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.hero button {
+  background-color: #FFBF00;
+  color: #121212;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.featured {
+  padding: 2rem;
+}
+
+.projectGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.projectCard {
+  background-color: #222;
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+}
