@@ -1,9 +1,9 @@
-
-
+import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Header from './components/Layout/Header';
 import Footer from './components/Layout/Footer';
 import Home from './pages/Home';
+import Projects from './pages/Projects';
 import './App.css';
 
 function App() {
@@ -13,6 +13,7 @@ function App() {
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/projects" element={<Projects />} />
           {/* Other routes will be added here in the future */}
         </Routes>
       </main>
