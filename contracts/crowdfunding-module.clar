@@ -13,7 +13,14 @@
 ;; Implementing the crowdfunding trait (interface) to follow expected rules
 (impl-trait .crowdfunding-module-traits.crowdfunding-trait) 
 
-;; ===== Core Settings =====
+;; Import emergency module trait for proper emergency operations
+(use-trait crwd-emergency-module .emergency-module-trait.emergency-module-trait)
+
+;; Import module base trait for standardized module operations
+(use-trait crwd-module-base .module-base-trait.emergency-module-trait)
+
+
+;; ===== Core Settings for Module Contract References =====
 
 ;; Save the core contract that can control this module (e.g., for upgrades)
 (define-data-var core-contract principal tx-sender) 
@@ -24,44 +31,76 @@
 ;; Add Variable to store address of Escrow module
 (define-data-var escrow-contract principal tx-sender)
 
-;; ===== Constants =====
+;;;; ===== CONSTANTS =====
 
-;; Fixed fee (in microstacks) to create a new campaign
-(define-constant CAMPAIGN-FEE u20000000) ;; 20 STX
-
-;; Minimum amount someone must contribute
-(define-constant MINIMUM-CONTRIBUTION u1000000) ;; 1 STX
-
-;; Platform takes a 7% fee from funds when a campaign owner withdraws
-(define-constant WITHDRAWAL-FEE-PERCENT u7)
-
-;; If no custom duration is set, campaigns will last about 3 months (~12960 blocks)
-(define-constant DEFAULT-CAMPAIGN-DURATION u12960) 
-
-;; Constant holding contract-owner principal
+;; Constant holding contract-owner principal - set at deployment
 (define-constant CONTRACT-OWNER tx-sender)
 
+;; Security constants aligned with main hub 
+(define-constant BURN-ADDRESS 'SP000000000000000000002Q6VF78) ;; Burn address to prevent accidental burn
 
-;; ===== Error Codes =====
+;; Campaign operation constants
+(define-constant CAMPAIGN-FEE u50000000) ;; 5 STX - Fixed fee (in microstacks) to create a new campaign
+(define-constant MINIMUM-CONTRIBUTION u1000000) ;; 1 STX - Minimum amount someone must contribute
+(define-constant WITHDRAWAL-FEE-PERCENT u7) ;; Platform takes a 7% fee from funds when a campaign owner withdraws
+(define-constant DEFAULT-CAMPAIGN-DURATION u12960) ;; If no custom duration is set, campaigns will last about 3 months (~12960 blocks) 
 
+
+;;;; ===== ERROR CODE CONSTANTS =====
 ;; Predefined error messages for different failure situations
-(define-constant ERR-NOT-AUTHORIZED (err u2000)) 
-(define-constant ERR-INVALID-AMOUNT (err u2001)) 
-(define-constant ERR-CAMPAIGN-NOT-FOUND (err u2002))
-(define-constant ERR-CAMPAIGN-INACTIVE (err u2003))
-(define-constant ERR-FUNDING-GOAL-NOT-REACHED (err u2004))
-(define-constant ERR-ALREADY-CLAIMED (err u2005))
-(define-constant ERR-TRANSFER-FAILED (err u2006))
-(define-constant ERR-ESCROW-BALANCE-NOT-FOUND (err u2007))
-(define-constant ERR-INVALID-VERIFICATION-LEVEL-INPUT (err u2008))
-(define-constant ERR-NO-VERIFICATION (err u2009))
+(define-constant ERR-NOT-AUTHORIZED (err u300)) 
+(define-constant ERR-INVALID-AMOUNT (err u301)) 
+(define-constant ERR-CAMPAIGN-NOT-FOUND (err u302))
+(define-constant ERR-CAMPAIGN-INACTIVE (err u303))
+(define-constant ERR-FUNDING-GOAL-NOT-REACHED (err u304))
+(define-constant ERR-ALREADY-CLAIMED (err u305))
+(define-constant ERR-TRANSFER-FAILED (err u306))
+(define-constant ERR-ESCROW-BALANCE-NOT-FOUND (err u307))
+(define-constant ERR-INVALID-VERIFICATION-LEVEL-INPUT (err u308))
+(define-constant ERR-NO-VERIFICATION (err u309))
+(define-constant ERR-SYSTEM-PAUSED (err u310))
+(define-constant ERR-SYSTEM-NOT-PAUSED (err u311))
+(define-constant ERR-INVALID-RECIPIENT (err u312))
+(define-constant ERR-INSUFFICIENT-FUNDS (err u313))
+(define-constant ERR-CAMPAIGN-EXPIRED (err u314))
+(define-constant ERR-INSUFFICIENT-FUNDS (err u315))
+(define-constant ERR-INVALID-DURATION (err u316))
+(define-constant ERR-INVALID-DESCRIPTION (err u317)) 
+(define-constant ERR-INVALID-REWARD-TIERS (err u318)) 
+(define-constant ERR-FUNDING-GOAL-EXCEEDED (err u319))
+(define-constant ERR-DUPLICATE-CONTRIBUTION (err u320))
+(define-constant ERR-SELF-CONTRIBUTION-NOT-ALLOWED (err u321))
 
-;; ===== State Variables =====
+
+;; Campaign limits for security
+(define-constant MIN-CAMPAIGN-DURATION u4320) ;; 30 days: 43,200 min / 10 min per block = 4320 blocks
+(define-constant MAX-CAMPAIGN-DURATION u8640)             ;; 60 days: 86,400 min / 10 min/block = 8640 blocks
+
+
+;; ===== STATE VARIABLES =====
 
 ;; Counter for assigning a new unique ID to each campaign
 (define-data-var unique-campaign-id uint u0)
 
-;; ===== Data Maps =====
+;; Tracks all fees collected by the platform
+(define-data-var total-fees-collected uint u0)
+
+;; Emergency operations counter for audit trail - initialized to u0 at deployment; no audit yet
+(define-data-var emergency-ops-counter uint u0)
+
+;;;; ========== Emergency State ========
+;; Variable to hold state of operations 'not paused (false)' until when necessary 
+(define-data-var emergency-pause bool false)
+
+;; Variable to hold state of module-version - initialized to the first version (V1) at deployment 
+(define-data-var module-version uint u1)
+
+;; Variable to hold state of module-active 
+(define-data-var module-active bool true)
+
+
+
+;; ===== DATA MAPS =====
 
 ;; Stores details for each crowdfunding campaign
 (define-map campaigns uint {
@@ -87,12 +126,15 @@
 })
 
 
-;; Tracks all fees collected by the platform
-(define-data-var total-fees-collected uint u0)
+;; ========== SECURITY VALIDATION HELPER FUNCTIONS ==========
 
-;; ===== Public Functions =====
 
-;; ========== CREATE A CAMPAIGN ==========
+
+
+
+;; ===== COR CAMPAIGN PUBLIC FUNCTIONS =====
+
+;; ========== Create a Campaign ==========
 
 (define-public (create-campaign (description (string-ascii 500)) (campaign-id uint) (funding-goal uint) (duration uint) (reward-tiers uint) (reward-description (string-ascii 150)))
   (let
@@ -366,14 +408,12 @@
 ;; Get filmmaker verification information for a campaign
 (define-read-only (get-filmmaker-verification (campaign-id uint)) 
   (get is-verified (map-get? campaigns campaign-id))
-=======
-
-=======
 
 
 
 
-;; ========== INITIALIZE THE MODULE ==========
+
+;; ========== MODULE MANAGEMENT FUNCTIONS ==========
 
 ;; Set the core contract (allowed to control this module), as well as the crowdfunding and escrow contract addresses
 ;; Purpose: Can only be called once by the contract owner (tx-sender at deployment) to handle initial bootstrapping
@@ -416,11 +456,8 @@
   )
 )
 
-=======
 
-=======
-
-;; ========== EMERGENCY PAUSE FUNCTIONS ==========
+;; ========== EMERGENCY PAUSE MANAGEMENT FUNCTIONS ==========
 ;; Function to allow only core contract to set pause state
 (define-public (set-pause-state (pause bool))
   (let 

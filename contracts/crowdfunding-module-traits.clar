@@ -1,4 +1,4 @@
-;; title: crowdfunding-module-trait
+;; title: crowdfunding-module-traits
 ;; version: 1.0.0
 ;; Author: Victor Omenai 
 ;; Created: 2025
