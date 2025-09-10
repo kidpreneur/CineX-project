@@ -1,5 +1,5 @@
 
-;; title: verification-fee-mgt-enhancement-extension
+;; title: verification-mgt-extension
 
 ;; Author: Victor Omenai 
 ;; Created: 2025
