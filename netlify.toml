@@ -1,0 +1,4 @@
+[build]
+  base = "frontend-integration"
+  command = "CI= npm run build"
+  publish = "dist"
