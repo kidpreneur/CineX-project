@@ -1,5 +1,6 @@
 
-;; title: emergency-module-trait;; version: 1.0.0
+;; title: emergency-module-trait
+;; version: 1.0.0
 ;; Purpose: Emergency operations trait, as a standard evacuation plan for modules that handle funds
 ;; Functions: Emergency withdraw, pause state management
 ;; Author: Victor Omenai 
