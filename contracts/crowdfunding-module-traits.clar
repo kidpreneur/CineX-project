@@ -38,7 +38,9 @@
         is-active: bool,
         funds-claimed: bool,
         is-verified: bool,
-        verification-level: uint
+        verification-level: uint,
+        expires-at: uint,
+        last-activity-at: uint
         } uint))
     )
 )

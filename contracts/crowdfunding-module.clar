@@ -17,7 +17,7 @@
 (use-trait crwd-emergency-module .emergency-module-trait.emergency-module-trait)
 
 ;; Import module base trait for standardized module operations
-(use-trait crwd-module-base .module-base-trait.emergency-module-trait)
+(use-trait crwd-module-base .module-base-trait.module-base-trait)
 
 
 ;; ===== Core Settings for Module Contract References =====
@@ -41,9 +41,13 @@
 
 ;; Campaign operation constants
 (define-constant CAMPAIGN-FEE u50000000) ;; 5 STX - Fixed fee (in microstacks) to create a new campaign
-(define-constant MINIMUM-CONTRIBUTION u1000000) ;; 1 STX - Minimum amount someone must contribute
-(define-constant WITHDRAWAL-FEE-PERCENT u7) ;; Platform takes a 7% fee from funds when a campaign owner withdraws
-(define-constant DEFAULT-CAMPAIGN-DURATION u12960) ;; If no custom duration is set, campaigns will last about 3 months (~12960 blocks) 
+(define-constant MIN-FUNDING u1000000) ;; 1 STX - Minimum amount that can be raised
+(define-constant MAX-FUNDING u100000000000) ;; 100 000 STX - Maximum amount that can be raised
+(define-constant WITHDRAWAL-FEE-PERCENT u5) ;; Platform takes a 5% fee from funds when a campaign owner withdraw 
+(define-constant MAX-REWARD-TIERS u10) ;; Maximum 10 reward tiers
+(define-constant MAX-TIER-DESC-LENGTH u500) ;; Maximum description length for reward tiers 
+(define-constant MIN-CAMPAIGN-DURATION u4320) ;; 30 days: 43,200 min / 10 min per block = 4320 blocks
+(define-constant DEFAULT-CAMPAIGN-DURATION u8640) ;; If no custom duration is set, campaigns will last about 3 months (~12960 blocks)
 
 
 ;;;; ===== ERROR CODE CONSTANTS =====
@@ -60,10 +64,10 @@
 (define-constant ERR-NO-VERIFICATION (err u309))
 (define-constant ERR-SYSTEM-PAUSED (err u310))
 (define-constant ERR-SYSTEM-NOT-PAUSED (err u311))
-(define-constant ERR-INVALID-RECIPIENT (err u312))
-(define-constant ERR-INSUFFICIENT-FUNDS (err u313))
-(define-constant ERR-CAMPAIGN-EXPIRED (err u314))
-(define-constant ERR-INSUFFICIENT-FUNDS (err u315))
+(define-constant ERR-MODULE-INACTIVE (err u312))
+(define-constant ERR-INVALID-RECIPIENT (err u313))
+(define-constant ERR-INSUFFICIENT-FUNDS (err u314))
+(define-constant ERR-CAMPAIGN-EXPIRED (err u315))
 (define-constant ERR-INVALID-DURATION (err u316))
 (define-constant ERR-INVALID-DESCRIPTION (err u317)) 
 (define-constant ERR-INVALID-REWARD-TIERS (err u318)) 
@@ -71,10 +75,6 @@
 (define-constant ERR-DUPLICATE-CONTRIBUTION (err u320))
 (define-constant ERR-SELF-CONTRIBUTION-NOT-ALLOWED (err u321))
 
-
-;; Campaign limits for security
-(define-constant MIN-CAMPAIGN-DURATION u4320) ;; 30 days: 43,200 min / 10 min per block = 4320 blocks
-(define-constant MAX-CAMPAIGN-DURATION u8640)             ;; 60 days: 86,400 min / 10 min/block = 8640 blocks
 
 
 ;; ===== STATE VARIABLES =====
@@ -85,8 +85,8 @@
 ;; Tracks all fees collected by the platform
 (define-data-var total-fees-collected uint u0)
 
-;; Emergency operations counter for audit trail - initialized to u0 at deployment; no audit yet
-(define-data-var emergency-ops-counter uint u0)
+;; Emergency operations counter for audit trail 
+(define-data-var emergency-ops-counter uint u0) ;; initialized to u0 at deployment - no audit of emergency operations yet
 
 ;;;; ========== Emergency State ========
 ;; Variable to hold state of operations 'not paused (false)' until when necessary 
@@ -95,7 +95,7 @@
 ;; Variable to hold state of module-version - initialized to the first version (V1) at deployment 
 (define-data-var module-version uint u1)
 
-;; Variable to hold state of module-active 
+;; Variable to hold state of module-active - initialized to true, implying module is actively running
 (define-data-var module-active bool true)
 
 
@@ -115,28 +115,121 @@
   is-active: bool, ;; True if still running, false if closed
   funds-claimed: bool, ;; True if owner has withdrawn funds
   is-verified: bool, ;; verification status
-  verification-level: uint ;; uint to track filmmaker as level 1 or 2 verified
+  verification-level: uint, ;; uint to track filmmaker as level 1 or 2 verified
+  expires-at: uint,;; for expiration tracking 
+  last-activity-at: uint;; last activity monitoring 
 })
 
 ;; Tracks each contributor's activity for each campaign
 (define-map campaign-contributions { campaign-id: uint, contributor: principal } {
   total-contributed: uint, ;; Total amount this user gave
   contributions-count: uint, ;; Number of times they contributed
+  first-contribution-at: uint, ;; backer's initial contribution (block-height)
   last-contribution-at: uint ;; When they last contributed (block-height)
 })
+
+;; Emergency operations log for audit trail
+(define-map emergency-ops-log { ops-count-id: uint } { 
+  emergency-ops-type: (string-ascii 150),
+  recipient: principal,
+  admin: principal,
+  block-height: uint,
+  reason: (string-ascii 100) 
+  })
+
+
+
 
 
 ;; ========== SECURITY VALIDATION HELPER FUNCTIONS ==========
 
+;; System-Pause Validation - checks that system is operational
+(define-private (check-system-operational)
+  (begin 
+    (asserts! (not (var-get emergency-pause)) ERR-SYSTEM-PAUSED)
+    (ok true)
+  )
+  
+)
+
+;; System-Active Validation - check that module is active
+(define-private (check-module-active)
+  (begin 
+    (asserts! (var-get module-active) ERR-MODULE-INACTIVE)
+    (ok true)
+  )
+  
+)
+
+;; Comprehensive principal validation - ensuring address of module is not a wrong address
+(define-private (is-valid-module (address principal))
+  (and 
+    (not (is-eq address BURN-ADDRESS)) ;; Ensure it's not BURN-ADDRESS
+    (not (is-eq address CONTRACT-OWNER)) ;; Ensure it's not CONTRACT-OWNER
+    (not (is-eq address (as-contract tx-sender))) ;; Ensure it's not the platform principal directly
+    (not (is-eq address (var-get core-contract))) ;; Ensure it's not the core contract - that is, the main entry point 
+  
+  )
+)
+
+;; Validate campaign creation parameters  
+(define-private (validate-campaign-params (description (string-ascii 500)) 
+  (funding-goal uint)
+  (duration uint)
+  (reward-tiers uint)
+  (reward-description (string-ascii 150)))
+  (begin  
+    ;; Validate description len is greater than u0
+    (asserts! (> (len description) u0) ERR-INVALID-DESCRIPTION)
+
+    ;; Validate that funding goal is >= MIN-FUNDING or is <= MAX-FUNDING
+    (asserts! (or (>= funding-goal MIN-FUNDING) (<= funding-goal MAX-FUNDING)) ERR-INVALID-AMOUNT)
+
+    ;; Validate that duration is >= MIN-CAMPAIGN-DURATION or is <= DEFAULT-CAMPAIGN-DURATION, else trigger ERR-INVALID-DURATION 
+    (asserts! (or (>= duration MIN-CAMPAIGN-DURATION) (<= duration DEFAULT-CAMPAIGN-DURATION)) ERR-INVALID-DURATION)
+
+    ;; Ensure reward-tiers is > u0, and that it is also <= MAX-REWARD-TIERS, else trigger ERR-INVALID-REWARD-TIERS
+    (asserts! (and (> reward-tiers u0) (<= reward-tiers MAX-REWARD-TIERS)) ERR-INVALID-REWARD-TIERS)
+
+    (ok true)
+
+        
+  )
+  
+  
+)
+  
+
+;; Check if campaign has expired
+(define-private (is-campaign-expired (campaign-id uint)) 
+  (match (map-get? campaigns campaign-id) campaign 
+    (let 
+      (
+        ;; Get current campaign expiration time 
+        (expires-at (get expires-at campaign))
+      ) 
+
+      ;; Ensure expiration is set at block-height >= expiration time of current campaign
+
+      (>= block-height expires-at)
+
+    ) 
+  ;; else, it's false
+    false
+  )
+
+)
 
 
+;; ===== CORE CAMPAIGN PUBLIC FUNCTIONS =====
+;;  Create a Campaign =====
 
-
-;; ===== COR CAMPAIGN PUBLIC FUNCTIONS =====
-
-;; ========== Create a Campaign ==========
-
-(define-public (create-campaign (description (string-ascii 500)) (campaign-id uint) (funding-goal uint) (duration uint) (reward-tiers uint) (reward-description (string-ascii 150)))
+(define-public (create-campaign (description (string-ascii 500)) 
+  (campaign-id uint) 
+  (funding-goal uint) 
+  (duration uint) 
+  (reward-tiers uint) 
+  (reward-description (string-ascii 150)))
   (let
     (
       ;; Get current unique campaign id
@@ -144,27 +237,33 @@
 
       ;; Set new campaign ID by adding 1 to the current counter
       (next-unique-campaign-id (+ current-unique-campaign-id u1)) 
-      
-      (effective-duration (if (> duration u0) ;; If campaign creator inputs a custom `duration` variable, i.e, anything > zero, 
-                                duration ;; let it pass
-                                DEFAULT-CAMPAIGN-DURATION ;; else, use DEFAULT-CAMPAIGN-DURATION 12960  
+
+      ;; === Duration Handling
+                                ;; If campaign creator inputs a custom `duration` variable, i.e, anything >= MINIMUM DURATION and < DEFAULT DURATION 
+      (effective-duration (if (and (>= duration MIN-CAMPAIGN-DURATION) 
+                                  (< duration DEFAULT-CAMPAIGN-DURATION)) 
+                                duration ;; let that custom duration pass
+                                DEFAULT-CAMPAIGN-DURATION ;; else, use DEFAULT-CAMPAIGN-DURATION u8640 
                           )
         )
-      ;; Get total-fees-collected
+
+      ;; === Fee management
+          ;; Get total-fees-collected
       (existing-total-fees-collected (var-get total-fees-collected))
       
       ;; Calculate updated total-fees-collected
       (new-total-fees-collected (+ existing-total-fees-collected CAMPAIGN-FEE))
 
-      ;; Get core-contract
+      ;; === Contract references
+          ;; Get core-contract
       (authorized-core-contract (var-get core-contract))
 
-      ;; Check verification status
+      ;; === Check verification status with proper error handling
       (verification-result (unwrap! (contract-call? .film-verification-module is-filmmaker-currently-verified tx-sender) ERR-NO-VERIFICATION))
 
       ;; Check existing filmmaker identities, and current verification level
       (current-identities (unwrap! (contract-call? .film-verification-module get-filmmaker-identity tx-sender) ERR-NO-VERIFICATION))
-      (current-verification-level (get choice-verification-level current-identities) )
+      (current-verification-level (get choice-verification-level current-identities))
       
       ;; Get is-verified, if true, return "verified", else, Default to "not verified"
       (is-verified (if (is-eq verification-result true) 
@@ -177,6 +276,18 @@
                                           u0))
 
     )
+
+    ;; Validate overall system is operational before trying to create campaigns
+    (try! (check-system-operational))
+
+    ;; Validate module is equally active 
+    (try! (check-module-active)) 
+
+    ;; Ensure module's address is not an invalid tx-sender
+    (asserts! (is-valid-module tx-sender) ERR-INVALID-RECIPIENT)
+    
+    ;; Validate campaign creation params 
+    (try! (validate-campaign-params description funding-goal duration reward-tiers reward-description))
 
     ;; Take the campaign creation fee from the creator and send to core contract
     (unwrap! (stx-transfer? CAMPAIGN-FEE tx-sender authorized-core-contract) ERR-TRANSFER-FAILED)
@@ -197,11 +308,25 @@
       is-active: true, ;; campaign now runs
       funds-claimed: false, ;; nothing yet claimed 
       is-verified: is-verified, ;; update the verification-status, whether true or false
-      verification-level: existing-verification-level ;; update the verification level whether there is-some or is-none
+      verification-level: existing-verification-level, ;; update the verification level whether there is-some or is-none
+      expires-at: (+ block-height effective-duration),;; for expiration tracking 
+      last-activity-at: block-height;; last activity monitoring 
     })
     
     ;; Update the campaign counter
     (var-set unique-campaign-id next-unique-campaign-id)
+
+    ;; Print log for efficient Audit trail
+    (print {
+      event: "campaign-created",
+      campaign-id: next-unique-campaign-id,
+      owner: tx-sender,
+      funding-goal: funding-goal,
+      duration: duration,
+      is-verified: is-verified,
+      block-height: block-height
+
+    })
     
     ;; Return the new campaign ID to the creator
     (ok next-unique-campaign-id)
@@ -221,11 +346,23 @@
       
         ;; Try to get existing contribution, or default to zero if none
         (existing-contribution (default-to 
-                                  { total-contributed: u0, contributions-count: u0, last-contribution-at: u0 } 
-                                    (map-get? campaign-contributions { campaign-id: campaign-id, contributor: tx-sender })))
+                                  { 
+                                    total-contributed: u0, 
+                                    contributions-count: u0, 
+                                    first-contribution-at: u0,
+                                    last-contribution-at: u0 
+                                  } 
+                                    (map-get? campaign-contributions { campaign-id: campaign-id, contributor: tx-sender }))
+        )
+
+        ;; Get first contribution block-height from campaign contribution
+        (first-contribution-time (get first-contribution-at existing-contribution))
 
         ;; Get current-total-raised
         (current-total-raised (get total-raised campaign))
+
+        ;; Get funding-goal
+        (current-funding-goal (get funding-goal campaign))
 
         ;; Calculate new total-raised
         (new-total-raised (+ current-total-raised amount)) 
@@ -242,14 +379,32 @@
         ;; Calculate new count
         (new-count (+ current-contributions-count u1))
 
+        ;; Get initial first contribution , validly at u0, since contribution is not yet made
+        (is-first-contribution (is-eq current-contributions-count u0))
+
     )
-    
-      ;; Make sure campaign is active
+      ;; Validate overall system is operational before trying to create campaigns
+      (try! (check-system-operational))
+
+      ;; Validate module is equally active
+      (try! (check-module-active))
+
+      ;; Ensure module's address is not an invalid tx-sender
+      (asserts! (is-valid-module tx-sender) ERR-INVALID-RECIPIENT)      
+
+      ;; Enusre tx-sender is not contract-owner
+      (asserts! (not (is-eq tx-sender CONTRACT-OWNER)) ERR-SELF-CONTRIBUTION-NOT-ALLOWED)
+
+      ;; Make sure campaign is active, and that, consequently, campaign has not expired
       (asserts! (get is-active campaign) ERR-CAMPAIGN-INACTIVE)
+      (asserts! (not (is-campaign-expired campaign-id)) ERR-CAMPAIGN-EXPIRED)
     
-      ;; Make sure contribution amount is high enough
-      (asserts! (>= amount MINIMUM-CONTRIBUTION) ERR-INVALID-AMOUNT)
-    
+      ;; Make sure contribution amount is high enough - at least >= MIN-FUNDING, OR <= MAX-FUNDING
+      (asserts! (or (>= amount MIN-FUNDING) (<= amount MAX-FUNDING)) ERR-INVALID-AMOUNT)
+
+      ;; Ensure current total raised funds is <= funding-goal
+      (asserts! (<= new-total-raised current-funding-goal) ERR-FUNDING-GOAL-EXCEEDED)
+      
       ;; Move funds into escrow (secure temporary storage)
       (unwrap! (contract-call? .escrow-module deposit-to-campaign campaign-id amount) ERR-TRANSFER-FAILED)
     
@@ -257,15 +412,39 @@
       (map-set campaigns campaign-id 
         (merge 
           campaign 
-            { total-raised: new-total-raised }
+            { 
+              total-raised: new-total-raised, 
+              last-activity-at: block-height
+            }
         )
       )
+
       ;; Update record of contributor
       (map-set campaign-contributions { campaign-id: campaign-id, contributor: tx-sender } {
         total-contributed: new-total-contributed,
         contributions-count: new-count,
+        first-contribution-at: (if is-first-contribution 
+                                    ;; return timestamp of this first contribution
+                                  block-height 
+                                  ;; else, fetch from the campaign-contributions state, the old timestamp when first contribution occured
+                                  first-contribution-time
+                                ),
         last-contribution-at: block-height
       })
+
+      ;; Print log for efficient Audit trails
+      (print 
+        {
+          event: "contribution made",
+          campaign-id: campaign-id,
+          contributor: tx-sender,
+          amount: amount,
+          new-total-raised: new-total-raised,
+          contribution-count: new-count,
+          block-height: block-height
+        
+        }
+      )
     
       (ok true)
   )
@@ -289,7 +468,7 @@
       (current-owner (get owner campaign))
       
       ;; Calculate fee and final amount to withdraw
-      (fee-amount (/ (* current-total-raised WITHDRAWAL-FEE-PERCENT) u100)) ;; deduction of 7% withdrawal-fee from total-raised money
+      (fee-amount (/ (* current-total-raised WITHDRAWAL-FEE-PERCENT) u100)) ;; deduction of 5% withdrawal-fee from total-raised money
       (withdraw-amount (- current-total-raised fee-amount)) ;; campaign-owner withdraws total-raised funds minus deduction of 7% 
 
       ;; Get existing total-fees-collected
@@ -300,26 +479,33 @@
 
 
     )
-    
-      ;; Ensure only core contract can call this function
-      (asserts! (is-eq tx-sender authorized-core-contract) ERR-NOT-AUTHORIZED)
 
-      ;; Ensure campaign is still active
-      (asserts! (get is-active campaign) ERR-CAMPAIGN-INACTIVE)
+    ;; Validate overall system is operational before trying to create campaigns
+    (try! (check-system-operational))
+
+    ;; Validate module is equally active 
+    (try! (check-module-active)) 
     
-      ;; Make sure funds have not been claimed already
-      (asserts! (not (get funds-claimed campaign)) ERR-ALREADY-CLAIMED)
+    ;; Ensure only core contract can call this function
+    (asserts! (is-eq tx-sender authorized-core-contract) ERR-NOT-AUTHORIZED)
+
+    ;; Ensure campaign is still active
+    (asserts! (get is-active campaign) ERR-CAMPAIGN-INACTIVE)
     
-      ;; Only allow claim if funding goal was reached
-      (asserts! (>= current-total-raised current-funding-goal) ERR-FUNDING-GOAL-NOT-REACHED)
+    ;; Make sure funds have not been claimed already
+    (asserts! (not (get funds-claimed campaign)) ERR-ALREADY-CLAIMED)
     
-      ;; Mark campaign as completed
-      (map-set campaigns campaign-id 
-        (merge 
-          campaign 
+    ;; Only allow claim if funding goal was reached
+    (asserts! (>= current-total-raised current-funding-goal) ERR-FUNDING-GOAL-NOT-REACHED)
+    
+    ;; Mark campaign as completed
+    (map-set campaigns campaign-id 
+      (merge 
+        campaign 
           { 
             funds-claimed: true,
-            is-active: false
+            is-active: false,
+            last-activity-at: block-height
           })
       )
     
@@ -332,7 +518,18 @@
       ;; Track the collected fee
       (var-set total-fees-collected new-collected-fee)
     
-      (ok true)
+    ;; Print log for efficient Audit trails
+    (print {
+      event: "funds-claimed",
+      campaign-id: campaign-id,
+      owner: current-owner,
+      total-raised: current-total-raised,
+      owner-withdrawable-amount: withdraw-amount,
+      commission: fee-amount,
+      block-height: block-height
+
+    })
+    (ok true)
   )
 )
 
@@ -349,10 +546,12 @@
       reward-tiers: (get reward-tiers campaign),
       reward-description: (get reward-description campaign),
       total-raised: (get total-raised campaign),
+      is-active: (get is-active campaign),
       funds-claimed: (get funds-claimed campaign),
       is-verified: (get is-verified campaign),
-      is-active: (get is-active campaign),
-      verification-level: (get verification-level campaign)
+      verification-level: (get verification-level campaign),
+      expires-at: (get expires-at campaign),
+      last-activity-at: (get last-activity-at campaign)
     } )
     
     ;; If not found, return error
@@ -363,8 +562,11 @@
 ;; Ensure campaign is-active
 (define-read-only (is-active-campaign (campaign-id uint))
   (match (map-get? campaigns campaign-id)
-    ;; If found, return the campaign details
-    campaign (ok (get is-active campaign))
+    ;; If found, 
+    campaign (ok (and 
+                      ;; return campaign active status, provided the campaign has not expired
+                    (get is-active campaign) (not (is-campaign-expired campaign-id)) 
+                  ))
     
     ;; If not found, return error
     ERR-CAMPAIGN-NOT-FOUND
@@ -407,10 +609,36 @@
 
 ;; Get filmmaker verification information for a campaign
 (define-read-only (get-filmmaker-verification (campaign-id uint)) 
-  (get is-verified (map-get? campaigns campaign-id))
+  (match (map-get? campaigns campaign-id) 
+    campaign (some (get is-verified campaign)) 
+    none
+  )
+  
+)
+
+;; Get emergency operation details
+(define-read-only (get-emergency-ops-log (ops-id uint))
+  (map-get? emergency-ops-log { ops-count-id: ops-id })
+)
 
 
+;; Contribution details for transparency
+(define-read-only (get-campaign-contributions (campaign-id uint) (contributor principal)) 
+  (map-get? campaign-contributions { campaign-id: campaign-id, contributor: contributor })
+)
 
+;; Get System Status 
+(define-read-only (module-status) 
+  {
+    version: (var-get module-version),
+    active: (var-get module-active),
+    paused: (var-get emergency-pause),
+    total-campaigns: (var-get unique-campaign-id),
+    total-fees-collected: (var-get total-fees-collected),
+    emergency-ops-count: (var-get emergency-ops-counter)
+
+  }
+)
 
 
 ;; ========== MODULE MANAGEMENT FUNCTIONS ==========
@@ -421,9 +649,20 @@
   (begin
     ;; Only the original contract owner can call this
     (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+
+    ;; Ensure module's address is not an invalid tx-sender
+    (asserts! (is-valid-module tx-sender) ERR-INVALID-RECIPIENT)  
     
     ;; Save the core contract address
     (var-set core-contract core)
+
+    ;; Print log for efficient Audit trails
+    (print {
+      event: "module initialized",
+      core-contract: core,
+      initializer: tx-sender,
+      block-height: block-height
+    })
     (ok true)
 
   )
@@ -436,8 +675,19 @@
     ;; Only the original contract-owner can call this
     (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
 
+    ;; Ensure module's address is not an invalid tx-sender
+    (asserts! (is-valid-module tx-sender) ERR-INVALID-RECIPIENT)  
+
     ;; Save the verification contract address
     (var-set verification-contract verification)
+    
+    ;; Print log for efficient Audit trails
+    (print {
+      event: "verification contract updated",
+      new-contract: verification,
+      updater: tx-sender,
+      block-height: block-height
+    })
     (ok true)
 
   )
@@ -449,9 +699,20 @@
   (begin
     ;; Only the original contract-owner can call this
     (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)  
-    
+
+     ;; Ensure module's address is not an invalid tx-sender
+    (asserts! (is-valid-module tx-sender) ERR-INVALID-RECIPIENT)  
+
     ;; Save the escrow contract address
     (var-set escrow-contract escrow)
+    
+    ;; Print log for efficient Audit trails
+    (print {
+      event: "escrow contract updated",
+      new-contract: escrow,
+      updater: tx-sender,
+      block-height: block-height
+    })
     (ok true)
   )
 )
@@ -469,10 +730,25 @@
     (asserts! (is-eq contract-caller cinex-hub) ERR-NOT-AUTHORIZED)
 
     ;; Ensure system is not paused
-    (check-system-not-paused)
+    (asserts! (check-system-not-paused) ERR-SYSTEM-PAUSED)
 
     ;; Set the system-paused to pause
-    (var-set system-paused pause)
+    (var-set emergency-pause pause)
+
+    ;; Print log for efficient Audit trails
+    (print 
+       {
+        event: "pause-state-changed",
+        new-state: pause,
+        caller: contract-caller,
+        block-height: block-height
+
+       }
+    
+    
+    )
+      
+    
     (ok true) 
   )
 )
@@ -482,7 +758,7 @@
   (let 
     (
       ;; Get system-paused state
-      (current-system-paused-state (var-get system-paused))
+      (current-system-paused-state (var-get emergency-pause))
     ) 
     (not current-system-paused-state)
   )
@@ -490,26 +766,80 @@
 
 ;; Get system-paused status
 (define-read-only (is-system-paused) 
-  (var-get system-paused)
+  (var-get emergency-pause)
 )
 
 
 ;; Function to implement emergency withdraw
 (define-public (emergency-withdraw (amount uint) (recipient principal))
-  (begin 
+  (let 
+    (
+      ;; Get current contract's balance 
+      (current-contract-balance (stx-get-balance (as-contract tx-sender)))
+
+      ;; Get current emergency-ops counter, and consequently its next-emergency-ops counter to track state of a new emergency operation
+      (current-emergency-ops-counter (var-get emergency-ops-counter))
+      (next-emergency-ops-count (+ current-emergency-ops-counter u1))
+
+    )
+
     ;; Ensure only core contract can call this emergency withdraw function
-    (asserts! (is-eq tx-sender (var-get core-contract)) ERR-SYSTEM-NOT-PAUSED)
+    (asserts! (is-eq contract-caller (var-get core-contract)) ERR-NOT-AUTHORIZED)
 
     ;; Ensure system must be paused before emergency withdrawal
-    (asserts! (var-get system-paused) ERR-SYSTEM-NOT-PAUSED)
+    (asserts! (var-get emergency-pause) ERR-SYSTEM-NOT-PAUSED)
+
+    ;; Ensure amount to be withdrawn is > u0
+    (asserts! (> amount u0) ERR-INVALID-AMOUNT)
+
+    ;; Ensure amount to be withdrawn is <= current-balance, else trigger INSUFFICIENT FUNDS
+    (asserts! (<= amount current-contract-balance) ERR-INSUFFICIENT-FUNDS)
+
+    ;; Ensure contract is not BURN-ADDRESS, is not CONTRACT-OWNER, and, is not also of this contract principal
+    (asserts! (and 
+                (not (is-eq contract-caller BURN-ADDRESS)) 
+                (not (is-eq contract-caller CONTRACT-OWNER)) 
+                  (not (is-eq contract-caller (as-contract tx-sender))) 
+              )
+                ERR-INVALID-RECIPIENT)
+
+    ;; Update emergency-ops state map
+    (map-set emergency-ops-log { ops-count-id: next-emergency-ops-count } { 
+      emergency-ops-type: "emergency ops withdraw",
+      recipient: recipient,
+      admin: contract-caller,
+      block-height: block-height,
+      reason: "emergency funds recovery" 
+    })
+
+    ;; Update emergency ops counter with new emergency ops count
+    (var-set emergency-ops-counter next-emergency-ops-count)
 
     ;; Perform emergency withdrawal
-    (try! (stx-transfer? amount (as-contract tx-sender) recipient))
+    (unwrap! (stx-transfer? amount (as-contract tx-sender) recipient) ERR-TRANSFER-FAILED)
+
+    ;; Print log for efficient Audit trails
+    (print 
+        {
+        event: "emergency withdrawal",
+        operation-id: next-emergency-ops-count,
+        amount: amount,
+        recipient: recipient,
+        admin: contract-caller,
+        block-height: block-height
+
+      }
+    
+    )
 
     (ok true)
+
+  )  
+    
   
-  )
+    
 )
+
 
 ;; ========== BASE TRAIT IMPLEMENTATIONS ==========
 ;; Get module version number    
