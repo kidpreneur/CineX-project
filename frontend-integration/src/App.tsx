@@ -4,6 +4,7 @@ import Header from './components/Layout/Header';
 import Footer from './components/Layout/Footer';
 import Home from './pages/Home';
 import Projects from './pages/Projects';
+import Waitlist from './pages/Waitlist';
 import './App.css';
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/projects" element={<Projects />} />
+          <Route path="/waitlist" element={<Waitlist />} />
           {/* Other routes will be added here in the future */}
         </Routes>
       </main>

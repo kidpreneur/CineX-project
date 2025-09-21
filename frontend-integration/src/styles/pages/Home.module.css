@@ -13,13 +13,20 @@
   margin-bottom: 1rem;
 }
 
-.hero button {
-  background-color: #FFBF00;
-  color: #121212;
-  border: none;
+.waitlistButton {
+  display: inline-block;
   padding: 1rem 2rem;
   font-size: 1.2rem;
+  background-color: #FFBF00;
+  color: #121212;
+  text-decoration: none;
+  border-radius: 5px;
+  transition: background-color 0.3s;
   cursor: pointer;
+}
+
+.waitlistButton:hover {
+  background-color: #ffd700;
 }
 
 .featured {
