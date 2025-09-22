@@ -418,8 +418,8 @@
     ;; Set main hub emergency-pause state to new pause state
     (var-set emergency-pause pause)
 
-    ;; Notify all modules of emergency new pause state
-     ;; In the course of updating each module, if partcular module-name in pause-module helper fails, others still work
+    ;; Notify all modules of emergency new pause state-
+     ;; In the course of updating each module, if particular module-name in pause-module helper fails, others still work
      ;; Use try! to handle responses properly
      (try! (pause-module .crowdfunding-module pause "crowdfunding"))
      (try! (pause-module .escrow-module pause "escrow"))
@@ -477,7 +477,7 @@
 
 
 ;; Function to check pause state consistency across all modules
-(define-read-only (get-system-pause-status) 
+(define-public (get-system-pause-status) 
   (let 
     (
       ;; get pause-state of main hub as well as the other modules
@@ -490,35 +490,37 @@
       (co-ep-paused (contract-call? .Co-EP-rotating-fundings is-system-paused))
 
     ) 
-    
-    {
-      ;; Return tuple data details of system-pause state of each module including the main hub
-      hub-paused: hub-paused,
-      modules: {
-        crowdfunding: crowdfunding-paused,
-        escrow: escrow-paused,
-        film-verification: film-verification-paused,
-        rewards: rewards-paused,
-        verf-ext: verf-mgt-ext-paused,
-        co-ep: co-ep-paused
+    (ok 
+      {
+        ;; Return tuple data details of system-pause state of each module including the main hub
+        hub-paused: hub-paused,
+        modules: {
+          crowdfunding: crowdfunding-paused,
+          escrow: escrow-paused,
+          film-verification: film-verification-paused,
+          rewards: rewards-paused,
+          verf-ext: verf-mgt-ext-paused,
+          co-ep: co-ep-paused
 
-       },
+          },
 
-       ;; tuple data ensures that system-pause state in main-hub is consistent (is-eq) 
+        ;; tuple data ensures that system-pause state in main-hub is consistent (is-eq) 
             ;; with the same system-pause state in each module
-      is-consistent: (and   
+        is-consistent: (and   
           (is-eq hub-paused crowdfunding-paused)
           (is-eq hub-paused escrow-paused)
           (is-eq hub-paused film-verification-paused)
           (is-eq hub-paused rewards-paused)
           (is-eq hub-paused verf-mgt-ext-paused)
           (is-eq hub-paused co-ep-paused)
-      
-        )
+          )
        
-    }
+      }
+    
+    )
     
   )
+    
 )
 
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styles from '../styles/pages/Projects.module.css';
 
+
 // --- Start of in-lined ProjectCard component ---
 
 export interface Project {
@@ -76,10 +77,8 @@ const placeholderProjects: Project[] = [
 ];
 
 
-const Projects: React.FC = () => {
-  // Helper to convert genre names to kebab-case values
-  const toKebabCase = (str: string) => str.toLowerCase().replace(/\s+/g, '-').replace(/[/()]/g, '');
 
+const Projects: React.FC = () => {
   return (
     <div className={styles.projectsPage}>
       <header className={styles.header}>
@@ -88,15 +87,9 @@ const Projects: React.FC = () => {
           <input type="text" placeholder="Search projects..." className={styles.searchInput} />
           <select className={styles.filterSelect}>
             <option value="">All Genres</option>
-            {genreCategories.map((category, index) => (
-              <optgroup key={index} label={`${index + 1}. ${category.name}`} className={styles.categoryLabel}>
-                {category.genres.map((genre, genreIndex) => (
-                  <option key={genreIndex} value={toKebabCase(genre)}>
-                    {genre}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
+            <option value="documentary">Documentary</option>
+            <option value="feature-film">Feature Film</option>
+            <option value="short-film">Short Film</option>
           </select>
         </div>
       </header>
