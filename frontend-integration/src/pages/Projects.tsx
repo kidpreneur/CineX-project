@@ -1,6 +1,7 @@
 import React from 'react';
 import styles from '../styles/pages/Projects.module.css';
 
+
 // Define a type for the category structure for better type safety
 interface GenreCategory {
   name: string;
@@ -8,6 +9,7 @@ interface GenreCategory {
 }
 
 const genreCategories: GenreCategory[] = [
+
   {
     name: "Film & Video",
     genres: [
