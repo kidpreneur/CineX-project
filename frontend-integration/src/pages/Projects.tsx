@@ -75,7 +75,6 @@ const placeholderProjects: Project[] = [
   { id: '6', thumbnailUrl: 'https://via.placeholder.com/400x225.png/222/FFBF00?text=Project+F', title: 'City of Glass', filmmaker: 'David Black', fundingCurrent: 30000, fundingGoal: 150000, daysLeft: 60 },
 ];
 
-
 const Projects: React.FC = () => {
   // Helper to convert genre names to kebab-case values
   const toKebabCase = (str: string) => str.toLowerCase().replace(/\s+/g, '-').replace(/[/()]/g, '');
@@ -116,3 +115,4 @@ const Projects: React.FC = () => {
 };
 
 export default Projects;
+
