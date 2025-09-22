@@ -1,3 +1,5 @@
+
+
 import React, { useState } from 'react';
 import styles from '../styles/pages/Waitlist.module.css';
 
@@ -29,7 +31,7 @@ const questions = [
     ],
   },
   {
-    text: 'What\'s your biggest challenge in film and video content financing today?',
+    text: "What's your biggest challenge in film and video content financing today?",
     name: 'challenge',
     type: 'radio',
     options: [
@@ -148,7 +150,7 @@ const Waitlist: React.FC = () => {
       <div className={styles.container}>
         <h1>Join the CineX Waitlist</h1>
         <p>Help us shape the future of film financing. Answer a few questions to join our exclusive community.</p>
-
+        
         {message ? (
           <p className={styles.successMessage}>{message}</p>
         ) : (
