@@ -166,20 +166,6 @@
 
 ;; Add variable to store address of Escrow Module
 (define-data-var escrow-contract principal tx-sender)
-
-
-;;;; ========== Emergency State ========
-;; Variable to hold state of operations 'not paused (false)' until when necessary 
-(define-data-var emergency-pause bool false)
-
-;; Variable to hold state of module-version - initialized to the first version (V1) at deployment 
-(define-data-var module-version uint u1)
-
-;; Variable to hold state of module-active - initialized to true, implying module is actively running
-(define-data-var module-active bool true)
-
-
-
 ;; ==================================================
 ;; PROJECT ENTRY FUNCTIONS
 ;; ================================================
@@ -1221,6 +1207,6 @@
 
 ;; Get system-paused status
 (define-read-only (is-system-paused) 
-  (var-get emergency-pause)
+  (var-get system-paused)
 )
 
