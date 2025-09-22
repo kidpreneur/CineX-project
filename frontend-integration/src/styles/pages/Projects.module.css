@@ -29,6 +29,29 @@
   border-radius: 5px;
 }
 
+.filterSelect {
+  min-width: 300px;
+  cursor: pointer;
+}
+
+/* Style for the category labels (optgroup) */
+.categoryLabel {
+  font-weight: bold;
+  font-style: italic;
+  color: #ffc107; /* A gold color for emphasis */
+  background-color: #1a1a1a;
+  padding: 5px 10px;
+  font-size: 1.1em;
+}
+
+/* Style for the options (option) - for better readability */
+.filterSelect option {
+  background-color: #222;
+  color: #F5F5DC;
+  padding: 8px;
+}
+
+
 .projectGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
