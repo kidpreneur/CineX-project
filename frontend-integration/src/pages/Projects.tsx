@@ -1,7 +1,13 @@
 import React from 'react';
 import styles from '../styles/pages/Projects.module.css';
 
-const genreCategories = [
+// Define a type for the category structure for better type safety
+interface GenreCategory {
+  name: string;
+  genres: string[];
+}
+
+const genreCategories: GenreCategory[] = [
   {
     name: "Film & Video",
     genres: [
