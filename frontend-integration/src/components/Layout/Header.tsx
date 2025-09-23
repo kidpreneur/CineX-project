@@ -23,7 +23,6 @@ const Header: React.FC = () => {
       <nav className={`${styles.nav} ${menuOpen ? styles.navOpen : ''}`}>
         <Link to="/">Home</Link>
         <Link to="/projects">Projects</Link>
-        <Link to="/dashboard">Dashboard</Link>
         <Link to="/waitlist">Waitlist</Link>
         <button className={styles.connectButton}>Connect Wallet</button>
       </nav>
