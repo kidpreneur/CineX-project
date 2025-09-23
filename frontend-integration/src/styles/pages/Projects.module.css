@@ -1,5 +1,7 @@
 .projectsPage {
+  background-color: #f0f2f5;
   padding: 2rem;
+  min-height: 100vh;
 }
 
 .header {
@@ -10,6 +12,7 @@
 .header h1 {
   font-size: 2.5rem;
   margin-bottom: 1rem;
+  color: #333;
 }
 
 .searchAndFilter {
@@ -24,6 +27,8 @@
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 1rem;
+  background-color: #fff;
+  color: #333;
 }
 
 .categoryLabel {
@@ -60,5 +65,90 @@
 }
 
 .pagination button:hover {
-  background-color: #f0f0f0;
+  background-color: #e9ecef;
+}
+
+.pagination button:disabled {
+  background-color: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Styles for the in-lined ProjectCard component */
+.card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.thumbnail {
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  position: relative;
+  background-color: #e9ecef;
+}
+
+.thumbnail img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.info {
+  padding: 1.5rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+  color: #333;
+}
+
+.filmmaker {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0 0 1.5rem;
+}
+
+.funding {
+  margin-top: auto;
+}
+
+.progressBar {
+  width: 100%;
+  height: 8px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress {
+  height: 100%;
+  background-color: #007bff;
+  border-radius: 4px;
+}
+
+.fundingText {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #333;
 }
