@@ -1,17 +1,18 @@
 .projectsPage {
-  width: 100%;
+  background-color: #f0f2f5;
+  padding: 2rem;
+  min-height: 100vh;
 }
 
 .header {
-  padding: 2rem;
-  text-align: center;
-  border-bottom: 1px solid #333;
   margin-bottom: 2rem;
+  text-align: center;
 }
 
 .header h1 {
   font-size: 2.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+  color: #333;
 }
 
 .searchAndFilter {
@@ -20,32 +21,27 @@
   gap: 1rem;
 }
 
-.searchInput, .filterSelect {
-  padding: 0.8rem;
+.searchInput,
+.filterSelect {
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
   font-size: 1rem;
-  border: 1px solid #444;
-  background-color: #222;
-  color: #F5F5DC;
-  border-radius: 5px;
+  background-color: #fff;
+  color: #333;
+}
+
+.categoryLabel {
+  font-weight: bold;
+  background-color: #f0f0f0;
 }
 
 .projectGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-  padding: 0 2rem;
-}
-
-.projectCard {
-  background-color: #222;
-  padding: 1.5rem;
-  border-radius: 8px;
-  text-align: center;
-  transition: transform 0.2s ease-in-out;
-}
-
-.projectCard:hover {
-  transform: translateY(-5px);
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .projectLink {
@@ -57,55 +53,50 @@
 .pagination {
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding: 2rem 0;
+  margin-top: 2rem;
   gap: 1rem;
 }
 
 .pagination button {
-  padding: 0.8rem 1.5rem;
-  font-size: 1rem;
-  background-color: #FFBF00;
-  color: #121212;
-  border: none;
-  border-radius: 5px;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid #ccc;
+  background-color: #fff;
   cursor: pointer;
-  transition: background-color 0.3s;
-  font-weight: bold;
+  border-radius: 4px;
 }
 
 .pagination button:hover {
-  background-color: #ffd700;
+  background-color: #e9ecef;
 }
 
 .pagination button:disabled {
-  background-color: #444;
-  color: #888;
+  background-color: #e9ecef;
+  color: #6c757d;
   cursor: not-allowed;
 }
 
 /* Styles for the in-lined ProjectCard component */
 .card {
-  background-color: #222;
-  border-radius: 8px;
+  background-color: #ffffff;
+  border-radius: 12px;
   overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%; /* Ensure cards in a row are the same height */
 }
 
 .card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
 .thumbnail {
   width: 100%;
   padding-top: 56.25%; /* 16:9 Aspect Ratio */
   position: relative;
-  background-color: #333;
+  background-color: #e9ecef;
 }
 
 .thumbnail img {
@@ -118,35 +109,33 @@
 }
 
 .info {
-  padding: 1rem;
+  padding: 1.5rem;
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
-  flex-grow: 1; /* Allow info to fill available space */
 }
 
 .title {
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 0.25rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin: 0 0 0.5rem;
+  color: #333;
 }
 
 .filmmaker {
   font-size: 0.9rem;
-  color: #ccc;
-  margin-bottom: 1rem;
+  color: #666;
+  margin: 0 0 1.5rem;
 }
 
 .funding {
-  margin-top: auto; /* Push funding to the bottom */
+  margin-top: auto;
 }
 
 .progressBar {
   width: 100%;
   height: 8px;
-  background-color: #444;
+  background-color: #e0e0e0;
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 0.5rem;
@@ -154,14 +143,13 @@
 
 .progress {
   height: 100%;
-  background-color: #FFBF00;
+  background-color: #007bff;
   border-radius: 4px;
-  transition: width 0.5s ease-in-out;
 }
 
 .fundingText {
   display: flex;
   justify-content: space-between;
-  font-size: 0.8rem;
-  color: #ccc;
+  font-size: 0.85rem;
+  color: #333;
 }
