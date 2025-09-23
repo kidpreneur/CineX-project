@@ -1,54 +1,7 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import styles from '../styles/pages/Projects.module.css';
-
-
-// --- Start of in-lined ProjectCard component ---
-
-export interface Project {
-  id: string;
-  thumbnailUrl: string;
-  title: string;
-  filmmaker: string;
-  fundingCurrent: number;
-  fundingGoal: number;
-  daysLeft: number;
-}
-
-interface ProjectCardProps {
-  project: Project;
-}
-
-const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
-  const fundingPercentage = (project.fundingCurrent / project.fundingGoal) * 100;
-
-  return (
-    <div className={styles.card}>
-      <div className={styles.thumbnail}>
-        <img src={project.thumbnailUrl} alt={`${project.title} thumbnail`} />
-      </div>
-      <div className={styles.info}>
-        <h3 className={styles.title}>{project.title}</h3>
-        <p className={styles.filmmaker}>by {project.filmmaker}</p>
-        <div className={styles.funding}>
-          <div className={styles.progressBar}>
-            <div
-              className={styles.progress}
-              style={{ width: `${fundingPercentage}%` }}
-            ></div>
-          </div>
-          <div className={styles.fundingText}>
-            <span>${project.fundingCurrent.toLocaleString()}</span>
-            <span>{project.daysLeft} days left</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- End of in-lined ProjectCard component ---
-
+import ProjectCard from '../components/projects/ProjectCard';
+import { placeholderProjects } from '../data/projects';
 
 // Define a type for the category structure for better type safety
 interface GenreCategory {
@@ -66,19 +19,10 @@ const genreCategories: GenreCategory[] = [
     { name: "Art & Design", genres: ["Photography Exhibition/Book", "Illustration Series", "Fashion Collection/Show", "Public Art Installation"] }
 ];
 
-// Placeholder data for projects
-const placeholderProjects: Project[] = [
-  { id: '1', thumbnailUrl: 'https://via.placeholder.com/400x225.png/222/FFBF00?text=Project+A', title: 'Echoes of the Void', filmmaker: 'Jane Doe', fundingCurrent: 75000, fundingGoal: 100000, daysLeft: 15 },
-  { id: '2', thumbnailUrl: 'https://via.placeholder.com/400x225.png/222/FFBF00?text=Project+B', title: 'Cyber Sunset', filmmaker: 'John Smith', fundingCurrent: 45000, fundingGoal: 50000, daysLeft: 30 },
-  { id: '3', thumbnailUrl: 'https://via.placeholder.com/400x225.png/222/FFBF00?text=Project+C', title: 'The Last Artisan', filmmaker: 'Emily White', fundingCurrent: 120000, fundingGoal: 200000, daysLeft: 45 },
-  { id: '4', thumbnailUrl: 'https://via.placeholder.com/400x225.png/222/FFBF00?text=Project+D', title: 'Forgotten Melodies', filmmaker: 'Michael Brown', fundingCurrent: 25000, fundingGoal: 60000, daysLeft: 20 },
-  { id: '5', thumbnailUrl: 'https://via.placeholder.com/400x225.png/222/FFBF00?text=Project+E', title: 'Beneath the Surface', filmmaker: 'Sarah Green', fundingCurrent: 95000, fundingGoal: 100000, daysLeft: 5 },
-  { id: '6', thumbnailUrl: 'https://via.placeholder.com/400x225.png/222/FFBF00?text=Project+F', title: 'City of Glass', filmmaker: 'David Black', fundingCurrent: 30000, fundingGoal: 150000, daysLeft: 60 },
-];
-
-
-
 const Projects: React.FC = () => {
+  // Helper to convert genre names to kebab-case values
+  const toKebabCase = (str: string) => str.toLowerCase().replace(/\s+/g, '-').replace(/[/()]/g, '');
+
   return (
     <div className={styles.projectsPage}>
       <header className={styles.header}>
@@ -87,17 +31,21 @@ const Projects: React.FC = () => {
           <input type="text" placeholder="Search projects..." className={styles.searchInput} />
           <select className={styles.filterSelect}>
             <option value="">All Genres</option>
-            <option value="documentary">Documentary</option>
-            <option value="feature-film">Feature Film</option>
-            <option value="short-film">Short Film</option>
+            {genreCategories.map((category, index) => (
+              <optgroup key={index} label={`${index + 1}. ${category.name}`} className={styles.categoryLabel}>
+                {category.genres.map((genre, genreIndex) => (
+                  <option key={genreIndex} value={toKebabCase(genre)}>
+                    {genre}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
           </select>
         </div>
       </header>
       <div className={styles.projectGrid}>
         {placeholderProjects.map(project => (
-          <Link to={`/projects/${project.id}`} key={project.id} className={styles.projectLink}>
-            <ProjectCard project={project} />
-          </Link>
+          <ProjectCard project={project} key={project.id} />
         ))}
       </div>
       <div className={styles.pagination}>

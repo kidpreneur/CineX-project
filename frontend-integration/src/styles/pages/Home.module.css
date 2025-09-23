@@ -3,128 +3,118 @@
 }
 
 .hero {
-  padding: 6rem 2rem;
+  padding: 5rem 2rem;
+  background-color: #1a1a1a;
   text-align: center;
-  position: relative;
   color: #fff;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://images.unsplash.com/photo-1546706872-9c90b8d0c94f');
-  background-size: cover;
-  background-position: center;
-  background-color: #222; /* Fallback color */
 }
 
 .hero h1 {
-  font-size: 3rem;
-  margin-bottom: 1.5rem;
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  letter-spacing: -1px;
 }
 
-.ctaButton {
+.subtitle {
+  font-size: 1.25rem;
+  margin-bottom: 2.5rem;
+  color: #a0a0a0;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ctaButtons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.ctaPrimary,
+.ctaSecondary {
   display: inline-block;
-  padding: 1rem 2rem;
-  font-size: 1.2rem;
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.ctaPrimary {
   background-color: #FFBF00;
   color: #121212;
-  text-decoration: none;
-  border-radius: 5px;
-  transition: background-color 0.3s;
-  cursor: pointer;
-  font-weight: bold;
 }
 
-.ctaButton:hover {
+.ctaPrimary:hover {
   background-color: #ffd700;
+  transform: translateY(-3px);
+}
+
+.ctaSecondary {
+  background-color: transparent;
+  color: #FFBF00;
+  border-color: #FFBF00;
+}
+
+.ctaSecondary:hover {
+  background-color: #FFBF00;
+  color: #121212;
+  transform: translateY(-3px);
 }
 
 .featured {
-  padding: 2rem;
+  padding: 4rem 2rem;
+  background-color: #f0f2f5;
+}
+
+.featured h2 {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  color: #333;
 }
 
 .projectGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
+  gap: 2rem;
   margin-top: 1rem;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .projectCard {
-  background-color: #222;
+  background-color: #fff;
   padding: 1.5rem;
   border-radius: 8px;
   text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
-/* How It Works Section */
-.howItWorks {
+/* Overview Section Styles */
+.overview {
+  background-color: #ffffff;
   padding: 4rem 2rem;
+}
+
+.overviewContent {
+  max-width: 800px;
+  margin: 0 auto;
   text-align: center;
 }
 
-.howItWorks h2 {
+.overviewContent h2 {
   font-size: 2.5rem;
-  margin-bottom: 3rem;
-}
-
-.stepsGrid {
-  display: flex;
-  justify-content: space-around;
-  gap: 2rem;
-  flex-wrap: wrap;
-}
-
-.step {
-  max-width: 300px;
-}
-
-.stepIcon {
-  font-size: 4rem;
-  color: #FFBF00;
-  margin-bottom: 1rem;
-}
-
-.step h3 {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.step p {
-  color: #ccc;
-}
-
-/* Testimonials Section */
-.testimonials {
-  padding: 4rem 2rem;
-  text-align: center;
-  background-color: #222;
-}
-
-.testimonials h2 {
-  font-size: 2.5rem;
-  margin-bottom: 3rem;
-}
-
-.testimonialGrid {
-  display: flex;
-  justify-content: space-around;
-  gap: 2rem;
-  flex-wrap: wrap;
-}
-
-.testimonialCard {
-  max-width: 350px;
-  background-color: #121212;
-  padding: 2rem;
-  border-radius: 8px;
-  border-left: 5px solid #FFBF00;
-}
-
-.quote {
-  font-style: italic;
-  font-size: 1.1rem;
   margin-bottom: 1.5rem;
-  color: #F5F5DC;
+  color: #333;
 }
 
-.author {
-  font-weight: bold;
-  color: #FFBF00;
+.overviewContent p {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #666;
 }
