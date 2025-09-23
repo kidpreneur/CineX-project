@@ -24,7 +24,7 @@
 .thumbnail img {
   width: 100%;
   height: 200px;
-  object-fit: cover;
+    background-color: #222a35;
 }
 
 .info {
@@ -38,25 +38,45 @@
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0 0 0.5rem;
-}
-
-.filmmaker {
+    color: #fff;
   font-size: 0.9rem;
   color: #666;
   margin: 0 0 1.5rem;
 }
 
 .funding {
-  margin-top: auto;
+    color: #cfd8dc;
 }
 
 .progressBar {
   width: 100%;
   height: 8px;
   background-color: #e0e0e0;
-  border-radius: 4px;
+    color: #e0e0e0;
   overflow: hidden;
   margin-bottom: 0.5rem;
+  @media (max-width: 600px) {
+    .card {
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 0.5rem;
+    }
+    .info {
+      padding: 1rem;
+    }
+    .thumbnail img {
+      height: 140px;
+    }
+    .title {
+      font-size: 1rem;
+    }
+    .filmmaker {
+      font-size: 0.8rem;
+    }
+    .fundingText {
+      font-size: 0.75rem;
+    }
+  }
 }
 
 .progress {
