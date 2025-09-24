@@ -136,20 +136,6 @@
   90% { opacity: 1; }
   100% { opacity: 0; }
 }
-}
-.progress {
-  height: 100%;
-  background: #FFBF00;
-  border-radius: 8px;
-  transition: width 0.3s;
-  max-width: 400px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-}
 .section {
   display: flex;
   flex-direction: column;
@@ -220,3 +206,4 @@ input, textarea {
     font-size: 0.95rem;
   }
 }
+
