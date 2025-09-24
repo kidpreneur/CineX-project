@@ -8,6 +8,7 @@ import Waitlist from './pages/Waitlist';
 import Dashboard from './pages/Dashboard';
 import PoolDashboard from './pages/PoolDashboard';
 import PoolDetail from './pages/PoolDetail';
+import PoolCreate from './pages/PoolCreate';
 import './App.css';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/pool-dashboard" element={<PoolDashboard />} />
             <Route path="/pool-detail" element={<PoolDetail />} />
+          <Route path="/pool-create" element={<PoolCreate />} />
         </Routes>
       </main>
       <Footer />

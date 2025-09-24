@@ -59,22 +59,24 @@
     .card {
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      padding: 0.5rem;
+      padding: 0.3rem;
+      max-width: 260px;
+      margin: 0 auto;
     }
     .info {
-      padding: 1rem;
+      padding: 0.7rem;
     }
     .thumbnail img {
-      height: 140px;
+      height: 105px;
     }
     .title {
-      font-size: 1rem;
-    }
-    .filmmaker {
       font-size: 0.8rem;
     }
+    .filmmaker {
+      font-size: 0.7rem;
+    }
     .fundingText {
-      font-size: 0.75rem;
+      font-size: 0.65rem;
     }
   }
 }
