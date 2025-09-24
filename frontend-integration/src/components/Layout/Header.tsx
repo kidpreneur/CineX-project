@@ -21,11 +21,13 @@ const Header: React.FC = () => {
         <span className={styles.bar}></span>
       </button>
       <nav className={`${styles.nav} ${menuOpen ? styles.navOpen : ''}`}>
-          <Link to="/">Home</Link>
-          <Link to="/projects">Projects</Link>
-          <Link to="/waitlist">Waitlist</Link>
-          <Link to="/dashboard">Dashboard</Link>
-          <button className={styles.connectButton}>Connect Wallet</button>
+            <Link to="/">Home</Link>
+            <Link to="/projects">Projects</Link>
+            <Link to="/waitlist">Waitlist</Link>
+            <Link to="/dashboard">Dashboard</Link>
+            <Link to="/pool-dashboard">Pools</Link>
+            <Link to="/pool-detail">Pool Detail</Link>
+            <button className={styles.connectButton}>Connect Wallet</button>
       </nav>
     </header>
   );
