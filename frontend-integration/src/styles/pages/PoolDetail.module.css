@@ -1,0 +1,24 @@
+.poolDetail {
+  padding: 2rem;
+  background: #121212;
+  color: #F5F5DC;
+}
+.header {
+  margin-bottom: 2rem;
+}
+.rotationSchedule, .members, .beneficiary, .activityFeed {
+  background: #222222;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+.contributeBtn {
+  margin-top: 1rem;
+  background: #FFBF00;
+  color: #121212;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
