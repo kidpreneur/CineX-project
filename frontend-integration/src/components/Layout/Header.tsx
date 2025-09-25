@@ -27,6 +27,7 @@ const Header: React.FC = () => {
             <Link to="/dashboard">Dashboard</Link>
             <Link to="/pool-dashboard">Pools</Link>
             <Link to="/pool-detail">Pool Detail</Link>
+            <Link to="/pool-create">Create Pool</Link>
             <button className={styles.connectButton}>Connect Wallet</button>
       </nav>
     </header>
