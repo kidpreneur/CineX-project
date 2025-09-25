@@ -96,10 +96,11 @@
   margin-bottom: 2rem;
 }
 .rotationSchedule, .members, .beneficiary, .activityFeed {
-  background: #222222;
+  background: #fff;
   border-radius: 16px;
   padding: 1.5rem;
   margin-bottom: 2rem;
+  color: #222;
 }
 .contributeBtn {
   margin-top: 1rem;

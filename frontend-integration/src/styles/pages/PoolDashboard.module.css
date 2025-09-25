@@ -67,10 +67,11 @@
   margin-top: 2rem;
 }
 .poolCard {
-  background: #222222;
+  background: #fff;
   border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  color: #222;
 }
 .viewPoolBtn {
   margin-top: 1rem;
