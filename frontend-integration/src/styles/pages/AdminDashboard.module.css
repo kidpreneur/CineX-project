@@ -1,0 +1,60 @@
+.adminDashboardContainer {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.adminDashboardContainer h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: #222a35;
+}
+
+.statsSection, .managementSection, .verificationSection {
+  margin-bottom: 2rem;
+}
+
+.statsSection h2, .managementSection h2, .verificationSection h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.7rem;
+  color: #333;
+}
+
+.statsSection ul, .verificationSection ul {
+  list-style: disc inside;
+  padding-left: 1rem;
+}
+
+.statsSection li, .verificationSection li {
+  font-size: 1rem;
+  margin-bottom: 0.3rem;
+}
+
+.managementSection p {
+  color: #888;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 600px) {
+  .adminDashboardContainer {
+    max-width: 99vw;
+    padding: 0.7rem 0.2rem;
+    border-radius: 8px;
+  }
+  .adminDashboardContainer h1 {
+    font-size: 1.1rem;
+    margin-bottom: 0.7rem;
+  }
+  .statsSection h2, .managementSection h2, .verificationSection h2 {
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+  }
+  .statsSection li, .verificationSection li {
+    font-size: 0.8rem;
+  }
+}
