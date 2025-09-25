@@ -96,3 +96,48 @@
   color: #28a745;
   margin-top: 2rem;
 }
+@media (max-width: 600px) {
+  .waitlist {
+    padding: 0.5rem;
+  }
+  .container {
+    max-width: 99vw;
+    padding: 0.2rem;
+  }
+  .container h1 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+  .container p {
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+  .form {
+    gap: 1rem;
+  }
+  .question {
+    padding: 0.7rem;
+    border-radius: 5px;
+  }
+  .question > label {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+  .otherInput {
+    font-size: 0.8rem;
+    padding: 0.3rem;
+    margin-left: 0.5rem;
+  }
+  .submitButton {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+  }
+  .disclaimer {
+    font-size: 0.7rem;
+    margin-top: 0.5rem;
+  }
+  .successMessage {
+    font-size: 1rem;
+    margin-top: 1rem;
+  }
+}

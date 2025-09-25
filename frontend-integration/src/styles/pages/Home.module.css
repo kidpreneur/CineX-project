@@ -3,24 +3,24 @@
 }
 
 .hero {
-  padding: 5rem 2rem;
+  padding: 2.2rem 0.7rem;
   background-color: #1a1a1a;
   text-align: center;
   color: #fff;
 }
 
 .hero h1 {
-  font-size: 3.5rem;
-  margin-bottom: 1rem;
+  font-size: 2.1rem;
+  margin-bottom: 0.5rem;
   font-weight: 700;
-  letter-spacing: -1px;
+  letter-spacing: -0.5px;
 }
 
 .subtitle {
-  font-size: 1.25rem;
-  margin-bottom: 2.5rem;
+  font-size: 1rem;
+  margin-bottom: 1.2rem;
   color: #a0a0a0;
-  max-width: 600px;
+  max-width: 95vw;
   margin-left: auto;
   margin-right: auto;
 }
@@ -28,18 +28,19 @@
 .ctaButtons {
   display: flex;
   justify-content: center;
-  gap: 1rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .ctaPrimary,
 .ctaSecondary {
   display: inline-block;
-  padding: 1rem 2.5rem;
-  font-size: 1.1rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.98rem;
   font-weight: 600;
   text-decoration: none;
-  border-radius: 8px;
-  transition: all 0.3s ease;
+  border-radius: 7px;
+  transition: all 0.3s;
   border: 2px solid transparent;
 }
 
@@ -66,23 +67,23 @@
 }
 
 .featured {
-  padding: 4rem 2rem;
+  padding: 1.5rem 0.7rem;
   background-color: #f0f2f5;
 }
 
 .featured h2 {
   text-align: center;
-  font-size: 2.5rem;
-  margin-bottom: 2rem;
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
   color: #333;
 }
 
 .projectGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  margin-top: 1rem;
-  max-width: 1200px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 0.7rem;
+  max-width: 98vw;
   margin-left: auto;
   margin-right: auto;
 }
@@ -98,7 +99,7 @@
 /* Overview Section Styles */
 .overview {
   background-color: #ffffff;
-  padding: 4rem 2rem;
+  padding: 1.2rem 0.7rem;
 }
 
 .overviewContent {
@@ -108,13 +109,54 @@
 }
 
 .overviewContent h2 {
-  font-size: 2.5rem;
-  margin-bottom: 1.5rem;
+  font-size: 1.3rem;
+  margin-bottom: 0.7rem;
   color: #333;
 }
 
 .overviewContent p {
-  font-size: 1.1rem;
-  line-height: 1.8;
+  font-size: 0.95rem;
+  line-height: 1.5;
   color: #666;
+@media (max-width: 600px) {
+  .hero {
+    padding: 1.1rem 0.3rem;
+  }
+  .hero h1 {
+    font-size: 1.2rem;
+    margin-bottom: 0.3rem;
+  }
+  .subtitle {
+    font-size: 0.9rem;
+    margin-bottom: 0.7rem;
+  }
+  .ctaPrimary, .ctaSecondary {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.85rem;
+    border-radius: 5px;
+  }
+  .featured {
+    padding: 0.7rem 0.2rem;
+  }
+  .featured h2 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  .projectGrid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    max-width: 100vw;
+  }
+  .overview {
+    padding: 0.5rem 0.1rem;
+  }
+  .overviewContent h2 {
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+  }
+  .overviewContent p {
+    font-size: 0.85rem;
+    line-height: 1.3;
+  }
+}
 }

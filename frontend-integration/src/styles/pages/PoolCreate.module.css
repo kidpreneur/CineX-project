@@ -1,3 +1,79 @@
+.createContainer {
+  max-width: 700px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+.createTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: #222a35;
+}
+.createForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.formLabel {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #222a35;
+}
+.formInput, .formTextarea {
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 1rem;
+  background: #f9fafb;
+  color: #222a35;
+}
+.formButton {
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  background: #222a35;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  align-self: flex-end;
+}
+@media (max-width: 600px) {
+  .createContainer {
+    max-width: 99vw;
+    margin: 0.5rem auto;
+    padding: 0.5rem 0.1rem;
+    border-radius: 8px;
+  }
+  .createTitle {
+    font-size: 1.1rem;
+    margin-bottom: 0.7rem;
+  }
+  .createForm {
+    gap: 0.7rem;
+  }
+  .formLabel {
+    font-size: 0.9rem;
+  }
+  .formInput, .formTextarea {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.7rem;
+  }
+  .formButton {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    align-self: stretch;
+  }
+}
 .poolCreate {
   background: #f0f2f5;
   min-height: 100vh;
