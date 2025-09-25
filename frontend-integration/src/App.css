@@ -3,7 +3,7 @@ body {
   margin: 0;
   font-family: 'Inter', sans-serif;
   background-color: #1a1a1a; /* A slightly lighter dark for the body */
-  color: #F5F5DC;
+  color: #222;
 }
 
 #root {
