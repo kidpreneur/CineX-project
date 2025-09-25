@@ -1,3 +1,38 @@
+.dashboardContainer {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+.dashboardTitle {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: #222a35;
+}
+.poolsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+}
+@media (max-width: 600px) {
+  .dashboardContainer {
+    max-width: 99vw;
+    margin: 0.5rem auto;
+    padding: 0.5rem 0.1rem;
+    border-radius: 8px;
+  }
+  .dashboardTitle {
+    font-size: 1.1rem;
+    margin-bottom: 0.7rem;
+  }
+  .poolsGrid {
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+}
 .poolDashboard {
   padding: 2rem;
   background: #121212;
