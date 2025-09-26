@@ -66,34 +66,35 @@ const Header: React.FC = () => {
       <div className={styles.logo}>
         <Link to="/">CineX</Link>
       </div>
-      <button className={styles.hamburger} onClick={toggleMenu}>
-        {/* A simple hamburger icon using spans */}
-        <span className={styles.bar}></span>
-        <span className={styles.bar}></span>
-        <span className={styles.bar}></span>
-      </button>
-      <nav className={styles.nav}>
-        <Link to="/">Home</Link>
-        <Link to="/projects">Explore Projects</Link>
-        <Link to="/waitlist">Waitlist</Link>
-        <Link to="/register">Register</Link>
-        <Link to="/login">Login</Link>
-        <Link to="/pool-create">Create Pool</Link>
-      </nav>
-      {/* Hamburger menu for laptop/desktop only, shows extra links when open */}
       <div className={styles.hamburgerMenuWrapper}>
-        <button className={styles.hamburger} onClick={toggleMenu}>
+        <button className={styles.hamburger} onClick={toggleMenu} aria-label="Open menu">
           <span className={styles.bar}></span>
           <span className={styles.bar}></span>
           <span className={styles.bar}></span>
         </button>
         {menuOpen && (
           <div className={styles.hamburgerMenu}>
-            <Link to="/dashboard" onClick={toggleMenu}>User Dashboard</Link>
-            <Link to="/pool-dashboard" onClick={toggleMenu}>Pools</Link>
-            <Link to="/pool-detail" onClick={toggleMenu}>Pool Details</Link>
-            <button className={styles.menuButton} onClick={() => { openWalletModal(); toggleMenu(); }}>Wallet Connection</button>
-            <button className={styles.menuButton} onClick={() => { openAdminDashboard(); toggleMenu(); }}>Admin Dashboard</button>
+            <button className={styles.closeMenu} onClick={toggleMenu} aria-label="Close menu">&times;</button>
+            <nav className={styles.menuLinks}>
+              <Link to="/dashboard" onClick={toggleMenu} className={styles.menuLink}>
+                User Dashboard
+                <span className={styles.closeLink} onClick={toggleMenu}>&times;</span>
+              </Link>
+              <Link to="/pool-dashboard" onClick={toggleMenu} className={styles.menuLink}>
+                Pools
+                <span className={styles.closeLink} onClick={toggleMenu}>&times;</span>
+              </Link>
+              <Link to="/pool-detail" onClick={toggleMenu} className={styles.menuLink}>
+                Pool Details
+                <span className={styles.closeLink} onClick={toggleMenu}>&times;</span>
+              </Link>
+              <button className={styles.menuButton} onClick={() => { openWalletModal(); toggleMenu(); }}>
+                Wallet Connection <span className={styles.closeLink}>&times;</span>
+              </button>
+              <button className={styles.menuButton} onClick={() => { openAdminDashboard(); toggleMenu(); }}>
+                Admin Dashboard <span className={styles.closeLink}>&times;</span>
+              </button>
+            </nav>
           </div>
         )}
       </div>
