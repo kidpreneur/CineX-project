@@ -66,6 +66,13 @@ const Header: React.FC = () => {
       <div className={styles.logo}>
         <Link to="/">CineX</Link>
       </div>
+      <nav className={styles.nav}>
+        <Link to="/" className={styles.navLink}>Home</Link>
+        <Link to="/projects" className={styles.navLink}>Projects</Link>
+        <Link to="/waitlist" className={styles.navLink}>Waitlist</Link>
+        <Link to="/register" className={styles.navLink}>Register</Link>
+        <Link to="/login" className={styles.navLink}>Login</Link>
+      </nav>
       <div className={styles.hamburgerMenuWrapper}>
         <button className={styles.hamburger} onClick={toggleMenu} aria-label="Open menu">
           <span className={styles.bar}></span>
@@ -76,24 +83,26 @@ const Header: React.FC = () => {
           <div className={styles.hamburgerMenu}>
             <button className={styles.closeMenu} onClick={toggleMenu} aria-label="Close menu">&times;</button>
             <nav className={styles.menuLinks}>
-              <Link to="/dashboard" onClick={toggleMenu} className={styles.menuLink}>
-                User Dashboard
-                <span className={styles.closeLink} onClick={toggleMenu}>&times;</span>
-              </Link>
-              <Link to="/pool-dashboard" onClick={toggleMenu} className={styles.menuLink}>
-                Pools
-                <span className={styles.closeLink} onClick={toggleMenu}>&times;</span>
-              </Link>
-              <Link to="/pool-detail" onClick={toggleMenu} className={styles.menuLink}>
-                Pool Details
-                <span className={styles.closeLink} onClick={toggleMenu}>&times;</span>
-              </Link>
-              <button className={styles.menuButton} onClick={() => { openWalletModal(); toggleMenu(); }}>
-                Wallet Connection <span className={styles.closeLink}>&times;</span>
-              </button>
-              <button className={styles.menuButton} onClick={() => { openAdminDashboard(); toggleMenu(); }}>
-                Admin Dashboard <span className={styles.closeLink}>&times;</span>
-              </button>
+              <div className={styles.menuPanel}>
+                <button className={styles.closeLink} onClick={toggleMenu} aria-label="Close">&times;</button>
+                <Link to="/dashboard" onClick={toggleMenu} className={styles.menuLink}>User Dashboard</Link>
+              </div>
+              <div className={styles.menuPanel}>
+                <button className={styles.closeLink} onClick={toggleMenu} aria-label="Close">&times;</button>
+                <Link to="/pool-dashboard" onClick={toggleMenu} className={styles.menuLink}>Pools</Link>
+              </div>
+              <div className={styles.menuPanel}>
+                <button className={styles.closeLink} onClick={toggleMenu} aria-label="Close">&times;</button>
+                <Link to="/pool-detail" onClick={toggleMenu} className={styles.menuLink}>Pool Details</Link>
+              </div>
+              <div className={styles.menuPanel}>
+                <button className={styles.closeLink} onClick={toggleMenu} aria-label="Close">&times;</button>
+                <button className={styles.menuButton} onClick={() => { openWalletModal(); toggleMenu(); }}>Wallet Connection</button>
+              </div>
+              <div className={styles.menuPanel}>
+                <button className={styles.closeLink} onClick={toggleMenu} aria-label="Close">&times;</button>
+                <button className={styles.menuButton} onClick={() => { openAdminDashboard(); toggleMenu(); }}>Admin Dashboard</button>
+              </div>
             </nav>
           </div>
         )}

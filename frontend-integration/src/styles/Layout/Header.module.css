@@ -1,3 +1,24 @@
+.navLink {
+  color: #FFBF00;
+  text-decoration: none;
+  margin: 0 0.3rem;
+  font-size: 0.95rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  transition: color 0.3s, background 0.3s;
+}
+
+.navLink:hover {
+  color: #121212;
+  background: #FFBF00;
+}
+
+.menuPanel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
 /* Hamburger menu overlay styles */
 .hamburgerMenuWrapper {
   position: relative;
