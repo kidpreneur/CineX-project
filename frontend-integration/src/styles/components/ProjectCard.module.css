@@ -11,8 +11,8 @@
   overflow: hidden;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s, box-shadow 0.2s;
-  height: 400px;
-  min-height: 340px;
+  height: 470px;
+  min-height: 400px;
   max-width: 350px;
   display: flex;
   flex-direction: column;
@@ -90,8 +90,10 @@
       font-size: 0.9rem;
     }
     .filmmaker {
-      font-size: 0.7rem;
-      color: #222;
+      font-size: 0.95rem;
+      color: #007bff;
+      font-weight: 500;
+      margin-bottom: 0.2rem;
     }
     .fundingText {
       font-size: 0.65rem;
