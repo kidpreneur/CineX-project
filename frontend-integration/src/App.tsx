@@ -10,6 +10,8 @@ import PoolDashboard from './pages/PoolDashboard';
 import PoolDetail from './pages/PoolDetail';
 import PoolCreate from './pages/PoolCreate';
 import AdminDashboard from './pages/AdminDashboard';
+import Register from './pages/Register';
+import Login from './pages/Login';
 import './App.css';
 
 function App() {
@@ -26,6 +28,8 @@ function App() {
             <Route path="/pool-detail" element={<PoolDetail />} />
           <Route path="/pool-create" element={<PoolCreate />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Login />} />
         </Routes>
       </main>
       <Footer />
