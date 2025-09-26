@@ -8,7 +8,6 @@ import styles from '../../styles/Layout/Header.module.css';
 const Header: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
-  const [adminModalOpen, setAdminModalOpen] = useState(false); // will be removed
   const navigate = useNavigate();
   const [walletConnected, setWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | undefined>(undefined);
@@ -59,7 +58,6 @@ const Header: React.FC = () => {
     navigate('/admin-dashboard');
   };
   const closeWalletModal = () => setWalletModalOpen(false);
-  const closeAdminModal = () => setAdminModalOpen(false);
 
   return (
     <header className={styles.header}>
