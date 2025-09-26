@@ -1,3 +1,78 @@
+/* Hamburger menu overlay styles */
+.hamburgerMenuWrapper {
+  position: relative;
+}
+
+.hamburgerMenu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 240px;
+  height: 100vh;
+  background: #181818;
+  box-shadow: -2px 0 12px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  z-index: 1001;
+  padding: 1.2rem 1rem 1rem 1rem;
+  animation: slideInMenu 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+
+@keyframes slideInMenu {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.closeMenu {
+  background: none;
+  border: none;
+  color: #FFBF00;
+  font-size: 2rem;
+  align-self: flex-end;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+  margin-right: -0.2rem;
+  line-height: 1;
+}
+
+.menuLinks {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0.2rem;
+}
+
+.menuLink, .menuButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #FFBF00;
+  background: none;
+  border: none;
+  text-decoration: none;
+  font-size: 1.05rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 5px;
+  margin-bottom: 0.1rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.menuLink:hover, .menuButton:hover {
+  background: #FFBF00;
+  color: #181818;
+}
+
+.closeLink {
+  color: #FFBF00;
+  font-size: 1.2rem;
+  margin-left: 0.7rem;
+  cursor: pointer;
+  background: none;
+  border: none;
+  line-height: 1;
+}
 .header {
   display: flex;
   justify-content: space-between;
