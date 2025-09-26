@@ -1,4 +1,4 @@
-import { Project } from '../components/projects/ProjectCard';
+import type { Project } from '../components/projects/ProjectCard';
 
 export const placeholderProjects: Project[] = [
   { id: '1', thumbnailUrl: 'https://via.placeholder.com/400x225.png/222/FFBF00?text=Project+A', title: 'Echoes of the Void', filmmaker: 'Jane Doe', fundingCurrent: 75000, fundingGoal: 100000, daysLeft: 15 },
