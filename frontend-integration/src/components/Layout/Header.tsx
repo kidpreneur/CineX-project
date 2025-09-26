@@ -72,17 +72,31 @@ const Header: React.FC = () => {
         <span className={styles.bar}></span>
         <span className={styles.bar}></span>
       </button>
-      <nav className={`${styles.nav} ${menuOpen ? styles.navOpen : ''}`}>
+      <nav className={styles.nav}>
         <Link to="/">Home</Link>
-        <Link to="/projects">Projects</Link>
+        <Link to="/projects">Explore Projects</Link>
         <Link to="/waitlist">Waitlist</Link>
-        <Link to="/dashboard">Dashboard</Link>
-        <Link to="/pool-dashboard">Pools</Link>
-        <Link to="/pool-detail">Pool Detail</Link>
+        <Link to="/register">Register</Link>
+        <Link to="/login">Login</Link>
         <Link to="/pool-create">Create Pool</Link>
-        <button className={styles.menuButton} onClick={openWalletModal}>Wallet Connection</button>
-  <button className={styles.menuButton} onClick={openAdminDashboard}>Admin Dashboard</button>
       </nav>
+      {/* Hamburger menu for laptop/desktop only, shows extra links when open */}
+      <div className={styles.hamburgerMenuWrapper}>
+        <button className={styles.hamburger} onClick={toggleMenu}>
+          <span className={styles.bar}></span>
+          <span className={styles.bar}></span>
+          <span className={styles.bar}></span>
+        </button>
+        {menuOpen && (
+          <div className={styles.hamburgerMenu}>
+            <Link to="/dashboard" onClick={toggleMenu}>User Dashboard</Link>
+            <Link to="/pool-dashboard" onClick={toggleMenu}>Pools</Link>
+            <Link to="/pool-detail" onClick={toggleMenu}>Pool Details</Link>
+            <button className={styles.menuButton} onClick={() => { openWalletModal(); toggleMenu(); }}>Wallet Connection</button>
+            <button className={styles.menuButton} onClick={() => { openAdminDashboard(); toggleMenu(); }}>Admin Dashboard</button>
+          </div>
+        )}
+      </div>
       <Modal isOpen={walletModalOpen} onClose={closeWalletModal}>
         <h2>Wallet Connection</h2>
         <WalletStatus

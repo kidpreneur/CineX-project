@@ -6,7 +6,9 @@ export interface Project {
   id: string;
   thumbnailUrl: string;
   title: string;
-  filmmaker: string;
+  creator: string;
+  type: string; // e.g. Film, Music, Art, Podcast, Animation, Comedy, etc.
+  description: string;
   fundingCurrent: number;
   fundingGoal: number;
   daysLeft: number;
@@ -27,7 +29,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
         </div>
         <div className={styles.info}>
           <h3 className={styles.title}>{project.title}</h3>
-          <p className={styles.filmmaker}>by {project.filmmaker}</p>
+          <p className={styles.filmmaker}>by {project.creator} &middot; <span className={styles.type}>{project.type}</span></p>
+          <p className={styles.description}>{project.description}</p>
           <div className={styles.funding}>
             <div className={styles.progressBar}>
               <div
@@ -36,7 +39,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
               ></div>
             </div>
             <div className={styles.fundingText}>
-              <span>${project.fundingCurrent.toLocaleString()}</span>
+              <span>Raised: ${project.fundingCurrent.toLocaleString()} / ${project.fundingGoal.toLocaleString()}</span>
               <span>{project.daysLeft} days left</span>
             </div>
           </div>
