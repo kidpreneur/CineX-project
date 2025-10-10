@@ -59,9 +59,9 @@ const PoolDetail: React.FC = () => {
       <section className={styles.beneficiary}>
         <h2>Current Beneficiary</h2>
         <p><strong>Name:</strong> {pool.beneficiary.name}</p>
-        <p><strong>Project:</strong> {pool.beneficiary.project}</p>
+  <p><strong>Campaign:</strong> {pool.beneficiary.project}</p>
         <p>{pool.beneficiary.details}</p>
-        <button className={styles.contributeBtn}>Contribute Now</button>
+  <button className={styles.contributeBtn} title="Support this campaign with your contribution.">Contribute Now</button>
       </section>
       <section className={styles.activityFeed}>
         <h2>Activity Feed</h2>

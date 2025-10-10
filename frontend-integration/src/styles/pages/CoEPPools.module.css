@@ -1,0 +1,35 @@
+.poolsPage {
+  max-width: 900px;
+  margin: 2rem auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+  padding: 2rem 2.5rem;
+}
+.poolsTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+}
+.poolsTable th, .poolsTable td {
+  border: 1px solid #eee;
+  padding: 0.7rem 1rem;
+  text-align: left;
+}
+.poolsTable th {
+  background: #f8f8f8;
+  font-weight: 700;
+}
+.socialTrust {
+  margin-top: 2.5rem;
+  background: #f8f8f8;
+  border-radius: 8px;
+  padding: 1.2rem 1.5rem;
+}
+.socialTrust h2 {
+  margin-bottom: 0.5rem;
+}
+.socialTrust ul {
+  margin: 0 0 0 1.2rem;
+  list-style: disc inside;
+}

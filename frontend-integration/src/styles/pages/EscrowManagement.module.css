@@ -1,0 +1,30 @@
+.escrowPage {
+  padding: 2rem;
+  background: #f9f9fb;
+  min-height: 100vh;
+}
+
+.escrowTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 2rem;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.escrowTable th, .escrowTable td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #ececec;
+}
+
+.escrowTable th {
+  background: #f0f4fa;
+  font-weight: 600;
+}
+
+.escrowTable tr:last-child td {
+  border-bottom: none;
+}

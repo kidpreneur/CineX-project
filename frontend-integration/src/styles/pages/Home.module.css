@@ -1,3 +1,22 @@
+.heroLogoWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1.2rem;
+}
+.heroLogo {
+  width: 120px;
+  height: 120px;
+  display: block;
+}
+.ctaLarge {
+  font-size: 1.3rem;
+  padding: 1.1rem 2.5rem;
+  border-radius: 12px;
+  font-weight: 700;
+  margin-bottom: 1.2rem;
+  box-shadow: 0 6px 24px rgba(255,191,0,0.15);
+}
 .home {
   width: 100%;
 }
