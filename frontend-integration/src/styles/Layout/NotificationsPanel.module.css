@@ -1,0 +1,72 @@
+.overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(30, 20, 60, 0.45);
+  z-index: 2100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  animation: fadeIn 0.3s;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.panel {
+  background: #fff;
+  width: 340px;
+  max-width: 95vw;
+  margin: 2.5rem 2.5rem 0 0;
+  border-radius: 1.2rem;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  padding: 1.5rem 1.2rem 1.2rem 1.2rem;
+  color: #2e1a47;
+  position: relative;
+  animation: slideIn 0.4s cubic-bezier(.68,-0.55,.27,1.55);
+}
+@keyframes slideIn {
+  from { transform: translateX(100vw); }
+  to { transform: translateX(0); }
+}
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #ffb347;
+  margin-bottom: 1.1rem;
+}
+.icon {
+  font-size: 1.3rem;
+}
+.closeBtn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #2e1a47;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.closeBtn:hover {
+  color: #ffb347;
+}
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 1.05rem;
+}
+.list li {
+  padding: 0.7rem 0.2rem;
+  border-bottom: 1px solid #ececec;
+}
+.list li:last-child {
+  border-bottom: none;
+}
+.empty {
+  color: #888;
+  text-align: center;
+  padding: 1.2rem 0;
+}

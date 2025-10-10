@@ -1,23 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { CreateCampaignModal } from '../components/Campaign';
 import handsLogo from '../assets/hands-together-logo.svg';
 import { Link } from 'react-router-dom';
 import styles from '../styles/pages/Home.module.css';
 import ProjectCard from '../components/projects/ProjectCard';
 import { placeholderProjects } from '../data/projects';
+import Testimonials from '../components/Home/Testimonials';
 
 const Home: React.FC = () => {
+  const [showCreateModal, setShowCreateModal] = useState(false);
   return (
     <div className={styles.home}>
       <section className={styles.hero}>
         <div className={styles.heroLogoWrapper}>
           <img src={handsLogo} alt="Hands coming together" className={styles.heroLogo} />
         </div>
-  <h1>Welcome to Crowdfunding Platform for Creatives</h1>
-  <p className={styles.subtitle}>A platform where people in the creative and entertainment industry raise funds for their projects.</p>
+
+        <h1>Welcome to Crowdfunding Platform for Creatives</h1>
+        <p className={styles.subtitle}>A platform where people in the creative and entertainment industry raise funds for their projects.</p>
         <div className={styles.ctaButtons}>
-          <Link to="/create-campaign" className={styles.ctaPrimary + ' ' + styles.ctaLarge}>
+          <button
+            className={styles.ctaPrimary + ' ' + styles.ctaLarge}
+            onClick={() => setShowCreateModal(true)}
+          >
             Create a Campaign
-          </Link>
+          </button>
         </div>
         <div className={styles.ctaButtons}>
           <Link to="/campaigns" className={styles.ctaSecondary}>
@@ -43,6 +50,8 @@ const Home: React.FC = () => {
           ))}
         </div>
       </section>
+      <Testimonials />
+      <CreateCampaignModal open={showCreateModal} onClose={() => setShowCreateModal(false)} />
     </div>
   );
 };

@@ -1,0 +1,160 @@
+.overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(30, 20, 60, 0.85);
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.7s;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.modal {
+  background: linear-gradient(135deg, #2e1a47 60%, #ffb347 100%);
+  border-radius: 2rem;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+  padding: 2.5rem 2.5rem 2rem 2.5rem;
+  min-width: 370px;
+  max-width: 95vw;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  animation: popIn 0.8s cubic-bezier(.68,-0.55,.27,1.55);
+}
+@keyframes popIn {
+  0% { transform: scale(0.7) rotate(-10deg); opacity: 0; }
+  80% { transform: scale(1.05) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.closeBtn {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.5rem;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 2rem;
+  cursor: pointer;
+  z-index: 2;
+  transition: color 0.2s;
+}
+.closeBtn:hover {
+  color: #ffb347;
+}
+.header {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffb347;
+  text-shadow: 0 2px 8px #1a0e2e;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  justify-content: center;
+}
+.icon {
+  font-size: 1.3rem;
+}
+.fieldsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+.field {
+  opacity: 0;
+  animation: fadeInField 1.2s forwards;
+  background: rgba(255,255,255,0.08);
+  border-radius: 1.2rem;
+  padding: 1.1rem 1.2rem 0.7rem 1.2rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+@keyframes fadeInField {
+  0% { opacity: 0; transform: scale(0.7) rotate(-180deg); }
+  60% { opacity: 1; transform: scale(1.1) rotate(20deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.animated {
+  animation-timing-function: cubic-bezier(.68,-0.55,.27,1.55);
+}
+.animate0 { animation-name: fadeInField, spinIn; }
+.animate1 { animation-name: fadeInField, bounceIn; }
+.animate2 { animation-name: fadeInField, slideIn; }
+.animate3 { animation-name: fadeInField, flipIn; }
+@keyframes spinIn {
+  0% { transform: rotate(-360deg) scale(0.7); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+@keyframes bounceIn {
+  0% { transform: scale(0.5); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+@keyframes slideIn {
+  0% { transform: translateX(-120vw); }
+  100% { transform: translateX(0); }
+}
+@keyframes flipIn {
+  0% { transform: rotateY(180deg) scale(0.7); }
+  100% { transform: rotateY(0deg) scale(1); }
+}
+.label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffb347;
+}
+.value {
+  font-size: 1.1rem;
+  color: #fff;
+  font-weight: 500;
+}
+.actionBtns {
+  display: flex;
+  gap: 1.2rem;
+  justify-content: center;
+  margin-top: 1.2rem;
+}
+.withdrawBtn, .refundBtn {
+  background: linear-gradient(90deg, #ffb347 60%, #2e1a47 100%);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 1.2rem;
+  padding: 0.7rem 2.2rem;
+  cursor: pointer;
+  box-shadow: 0 2px 12px #ffb34744;
+  transition: background 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.withdrawBtn:hover, .refundBtn:hover {
+  background: linear-gradient(90deg, #2e1a47 60%, #ffb347 100%);
+  color: #ffb347;
+}
+.successMsg {
+  margin-top: 1.2rem;
+  color: #fff;
+  background: #ffb34744;
+  border-radius: 0.7rem;
+  padding: 0.7rem 1.2rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  justify-content: center;
+}
+.successIcon {
+  color: #fff;
+  font-size: 1.5rem;
+}
