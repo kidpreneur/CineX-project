@@ -15,6 +15,7 @@ const Home: React.FC = () => {
         <div className={styles.heroLogoWrapper}>
           <img src={handsLogo} alt="Hands coming together" className={styles.heroLogo} />
         </div>
+
         <h1>Welcome to Crowdfunding Platform for Creatives</h1>
         <p className={styles.subtitle}>A platform where people in the creative and entertainment industry raise funds for their projects.</p>
         <div className={styles.ctaButtons}>
@@ -49,8 +50,8 @@ const Home: React.FC = () => {
           ))}
         </div>
       </section>
-  <Testimonials />
-  <CreateCampaignModal open={showCreateModal} onClose={() => setShowCreateModal(false)} />
+      <Testimonials />
+      <CreateCampaignModal open={showCreateModal} onClose={() => setShowCreateModal(false)} />
     </div>
   );
 };
