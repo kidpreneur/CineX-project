@@ -1,3 +1,27 @@
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.logoIcon {
+  width: 48px;
+  height: 48px;
+  margin-right: 0.1rem;
+}
+.logoTitle {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #FFBF00;
+  text-decoration: none;
+  letter-spacing: 1px;
+}
+.tagline {
+  display: block;
+  font-size: 0.85rem;
+  color: #a0a0a0;
+  margin-top: 0.1rem;
+  letter-spacing: 0.5px;
+}
 .navLink {
   color: #FFBF00;
   text-decoration: none;

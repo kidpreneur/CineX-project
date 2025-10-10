@@ -1,3 +1,8 @@
+.helperText {
+  color: #888;
+  font-size: 1rem;
+  margin-bottom: 0.7rem;
+}
 /* General Dashboard Styles */
 .dashboard {
   padding: 1.2rem 0.5rem;

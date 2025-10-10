@@ -1,4 +1,5 @@
 import React from 'react';
+import { FaInfoCircle } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import styles from '../../styles/components/ProjectCard.module.css';
 
@@ -22,13 +23,18 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
   const fundingPercentage = (project.fundingCurrent / project.fundingGoal) * 100;
 
   return (
-    <Link to={`/projects/${project.id}`} className={styles.cardLink}>
+    <Link to={`/campaigns/${project.id}`} className={styles.cardLink}>
       <div className={styles.card}>
         <div className={styles.thumbnail}>
           <img src={project.thumbnailUrl} alt={`${project.title} thumbnail`} />
         </div>
         <div className={styles.info}>
-          <h3 className={styles.title}>{project.title}</h3>
+          <div className={styles.campaignHeader}>
+            <h3 className={styles.title}>{project.title}</h3>
+            <span className={styles.campaignInfo} title="A campaign is a fundraising effort by a creative or entertainment professional to bring their project to life.">
+              <FaInfoCircle />
+            </span>
+          </div>
           <p className={styles.filmmaker}>by {project.creator} &middot; <span className={styles.type}>{project.type}</span></p>
           <p className={styles.description}>{project.description}</p>
           <div className={styles.funding}>

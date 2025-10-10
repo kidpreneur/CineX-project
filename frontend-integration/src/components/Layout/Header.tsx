@@ -4,6 +4,7 @@ import WalletStatus from '../WalletStatus';
 import TransactionStatusModal from '../TransactionStatusModal';
 import { Link, useNavigate } from 'react-router-dom';
 import styles from '../../styles/Layout/Header.module.css';
+import handsLogo from '../../assets/hands-together-logo.svg';
 
 const Header: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -62,11 +63,13 @@ const Header: React.FC = () => {
   return (
     <header className={styles.header}>
       <div className={styles.logo}>
-        <Link to="/">CineX</Link>
+        <img src={handsLogo} alt="Hands together logo" className={styles.logoIcon} />
+        <Link to="/" className={styles.logoTitle}>CineX</Link>
+        <span className={styles.tagline}>Crowdfunding for Creatives</span>
       </div>
       <nav className={styles.nav}>
         <Link to="/" className={styles.navLink}>Home</Link>
-        <Link to="/projects" className={styles.navLink}>Projects</Link>
+  <Link to="/campaigns" className={styles.navLink}>Campaigns</Link>
         <Link to="/waitlist" className={styles.navLink}>Waitlist</Link>
         <Link to="/register" className={styles.navLink}>Register</Link>
         <Link to="/login" className={styles.navLink}>Login</Link>

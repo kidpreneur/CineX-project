@@ -27,7 +27,7 @@ const questions = [
       'Complete beginner - never used crypto',
       'Some knowledge - own crypto but never used DeFi (Decentralized Finance',
       'Moderate - used DeFi platforms before',
-      'Advanced - actively developed or invested in blockchain projects',
+  'Advanced - actively developed or invested in blockchain campaigns',
     ],
   },
   {
@@ -35,7 +35,7 @@ const questions = [
     name: 'challenge',
     type: 'radio',
     options: [
-      'Finding initial capital to start projects',
+  'Finding initial capital to start campaigns',
       'Maintaining creative control and digital rights management (DRM) while securing funding',
       'Connecting with the right investors who understand my vision',
       'Managing multiple funding sources and stakeholders',
@@ -52,12 +52,12 @@ const questions = [
       'Co-EP (Collaborative Executive Producer) investment model',
       'NFT-based film asset ownership',
       'Transparent, blockchain-verified funding',
-      'Community-driven project selection',
+  'Community-driven campaign selection',
       'Revenue sharing through smart contracts',
     ],
   },
   {
-    text: 'How much would you typically invest in independent film projects?',
+  text: 'How much would you typically invest in independent film campaigns?',
     name: 'investment',
     type: 'radio',
     options: [
@@ -70,14 +70,14 @@ const questions = [
     ],
   },
   {
-    text: 'If you had these two features or instances on CineX, what would make you most confident investing or raising funding for your film project through a platform like CineX?',
+  text: 'If you had these two features or instances on CineX, what would make you most confident investing or raising funding for your film campaign through a platform like CineX?',
     name: 'confidence',
     type: 'checkbox',
     options: [
-      'Previous successful projects on the platform',
+  'Previous successful campaigns on the platform',
       'Clear legal framework and compliance',
       'Strong community of verified creatives',
-      'Detailed project analytics and transparency',
+  'Detailed campaign analytics and transparency',
       'Integration with traditional film distribution',
     ],
   },
@@ -107,20 +107,36 @@ const questions = [
   },
 ];
 
+interface WaitlistFormData {
+  role: string;
+  roleOther: string;
+  experience: string;
+  challenge: string;
+  challengeOther: string;
+  feature: string;
+  investment: string;
+  confidence: string[];
+  heardFrom: string;
+  heardFromOther: string;
+  updates: string;
+}
+
+const initialFormData: WaitlistFormData = {
+  role: '',
+  roleOther: '',
+  experience: '',
+  challenge: '',
+  challengeOther: '',
+  feature: '',
+  investment: '',
+  confidence: [],
+  heardFrom: '',
+  heardFromOther: '',
+  updates: '',
+};
+
 const Waitlist: React.FC = () => {
-  const [formData, setFormData] = useState({
-    role: '',
-    roleOther: '',
-    experience: '',
-    challenge: '',
-    challengeOther: '',
-    feature: '',
-    investment: '',
-    confidence: [],
-    heardFrom: '',
-    heardFromOther: '',
-    updates: '',
-  });
+  const [formData, setFormData] = useState<WaitlistFormData>(initialFormData);
 
   const [message, setMessage] = useState('');
 
@@ -168,14 +184,14 @@ const Waitlist: React.FC = () => {
                       checked={
                         q.type === 'checkbox'
                           ? formData.confidence.includes(option)
-                          : formData[q.name] === option
+                          : (formData[q.name as keyof WaitlistFormData] === option)
                       }
                       onChange={handleChange}
                     />
                     <label htmlFor={option}>{option}</label>
                   </div>
                 ))}
-                {q.otherName && formData[q.name] === 'Other' && (
+                {q.otherName && (formData[q.name as keyof WaitlistFormData] === 'Other') && (
                   <input
                     type="text"
                     name={q.otherName}

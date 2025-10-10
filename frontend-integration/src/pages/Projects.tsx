@@ -19,16 +19,20 @@ const genreCategories: GenreCategory[] = [
     { name: "Art & Design", genres: ["Photography Exhibition/Book", "Illustration Series", "Fashion Collection/Show", "Public Art Installation"] }
 ];
 
-const Projects: React.FC = () => {
+const Campaigns: React.FC = () => {
   // Helper to convert genre names to kebab-case values
   const toKebabCase = (str: string) => str.toLowerCase().replace(/\s+/g, '-').replace(/[/()]/g, '');
+
+  // Simulate empty state for demonstration (replace with real logic)
+  const campaigns = placeholderProjects; // rename for clarity
 
   return (
     <div className={styles.projectsPage}>
       <header className={styles.header}>
-        <h1>Explore Film Projects</h1>
+        <h1>Explore Creative Campaigns</h1>
+        <p className={styles.helperText}>Browse, search, and support campaigns from creatives and entertainment professionals.</p>
         <div className={styles.searchAndFilter}>
-          <input type="text" placeholder="Search projects..." className={styles.searchInput} />
+          <input type="text" placeholder="Search campaigns..." className={styles.searchInput} />
           <select className={styles.filterSelect}>
             <option value="">All Genres</option>
             {genreCategories.map((category, index) => (
@@ -44,9 +48,16 @@ const Projects: React.FC = () => {
         </div>
       </header>
       <div className={styles.projectGrid}>
-        {placeholderProjects.map(project => (
-          <ProjectCard project={project} key={project.id} />
-        ))}
+        {campaigns.length === 0 ? (
+          <div className={styles.emptyState}>
+            <h2>No campaigns found</h2>
+            <p>Be the first to <a href="/create-campaign" className={styles.ctaLink}>create a campaign</a> and inspire others!</p>
+          </div>
+        ) : (
+          campaigns.map(project => (
+            <ProjectCard project={project} key={project.id} />
+          ))
+        )}
       </div>
       <div className={styles.pagination}>
         <button>Previous</button>
@@ -56,4 +67,4 @@ const Projects: React.FC = () => {
   );
 };
 
-export default Projects;
+export default Campaigns;
