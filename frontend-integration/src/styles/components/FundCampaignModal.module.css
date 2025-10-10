@@ -1,0 +1,115 @@
+.overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(30, 20, 60, 0.85);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.5s;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.modal {
+  background: #fff;
+  border-radius: 1.5rem;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  padding: 2.2rem 2.5rem 2rem 2.5rem;
+  min-width: 340px;
+  max-width: 95vw;
+  color: #2e1a47;
+  position: relative;
+  overflow: hidden;
+  animation: popIn 0.7s cubic-bezier(.68,-0.55,.27,1.55);
+}
+@keyframes popIn {
+  0% { transform: scale(0.7) rotate(-10deg); opacity: 0; }
+  80% { transform: scale(1.05) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.closeBtn {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.5rem;
+  background: none;
+  border: none;
+  color: #2e1a47;
+  font-size: 2rem;
+  cursor: pointer;
+  z-index: 2;
+  transition: color 0.2s;
+}
+.closeBtn:hover {
+  color: #ffb347;
+}
+.heading {
+  font-size: 1.7rem;
+  font-weight: 700;
+  margin-bottom: 0.7rem;
+  text-align: center;
+  color: #ffb347;
+  text-shadow: 0 2px 8px #1a0e2e11;
+}
+.campaignTitle {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #2e1a47;
+  margin-bottom: 1.2rem;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+.label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2e1a47;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+.input {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border-radius: 0.7rem;
+  border: 1px solid #ececec;
+  font-size: 1rem;
+  margin-top: 0.2rem;
+  background: #f8f8fa;
+  color: #2e1a47;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  transition: box-shadow 0.2s;
+}
+.input:focus {
+  outline: 2px solid #ffb347;
+  box-shadow: 0 2px 8px #ffb34744;
+}
+.submitBtn {
+  margin-top: 0.5rem;
+  background: linear-gradient(90deg, #ffb347 60%, #2e1a47 100%);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 1.2rem;
+  padding: 0.7rem 2.2rem;
+  cursor: pointer;
+  box-shadow: 0 2px 12px #ffb34744;
+  transition: background 0.2s, color 0.2s;
+}
+.submitBtn:hover {
+  background: linear-gradient(90deg, #2e1a47 60%, #ffb347 100%);
+  color: #ffb347;
+}
+.successMsg {
+  margin-top: 1.2rem;
+  color: #2e1a47;
+  background: #ffb34722;
+  border-radius: 0.7rem;
+  padding: 0.7rem 1.2rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.05rem;
+}

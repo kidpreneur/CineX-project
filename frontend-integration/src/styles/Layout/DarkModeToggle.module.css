@@ -1,0 +1,24 @@
+.toggleBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: #fff;
+  color: #2e1a47;
+  border: 2px solid #ffb347;
+  border-radius: 1.2rem;
+  padding: 0.5rem 1.2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px #ffb34722;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+}
+.toggleBtn:hover {
+  background: #ffb347;
+  color: #fff;
+  border: 2px solid #2e1a47;
+}
+.label {
+  font-size: 1.05rem;
+  font-weight: 500;
+}

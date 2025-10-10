@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
+import HamburgerMenu from './HamburgerMenu';
 import Modal from '../Modal';
 import WalletStatus from '../WalletStatus';
 import TransactionStatusModal from '../TransactionStatusModal';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import styles from '../../styles/Layout/Header.module.css';
 import handsLogo from '../../assets/hands-together-logo.svg';
 
 const Header: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
-  const navigate = useNavigate();
   const [walletConnected, setWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | undefined>(undefined);
   const [walletStatus, setWalletStatus] = useState<string | undefined>(undefined);
@@ -49,15 +50,8 @@ const Header: React.FC = () => {
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
   };
+  const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
-  const openWalletModal = () => {
-    setWalletModalOpen(true);
-    setMenuOpen(false);
-  };
-  const openAdminDashboard = () => {
-    setMenuOpen(false);
-    navigate('/admin-dashboard');
-  };
   const closeWalletModal = () => setWalletModalOpen(false);
 
   return (
@@ -80,33 +74,7 @@ const Header: React.FC = () => {
           <span className={styles.bar}></span>
           <span className={styles.bar}></span>
         </button>
-        {menuOpen && (
-          <div className={styles.hamburgerMenu}>
-            <button className={styles.closeMenu} onClick={toggleMenu} aria-label="Close menu">&times;</button>
-            <nav className={styles.menuLinks}>
-              <div className={styles.menuPanel}>
-                <button className={styles.closeLink} onClick={toggleMenu} aria-label="Close">&times;</button>
-                <Link to="/dashboard" onClick={toggleMenu} className={styles.menuLink}>User Dashboard</Link>
-              </div>
-              <div className={styles.menuPanel}>
-                <button className={styles.closeLink} onClick={toggleMenu} aria-label="Close">&times;</button>
-                <Link to="/pool-dashboard" onClick={toggleMenu} className={styles.menuLink}>Pools</Link>
-              </div>
-              <div className={styles.menuPanel}>
-                <button className={styles.closeLink} onClick={toggleMenu} aria-label="Close">&times;</button>
-                <Link to="/pool-detail" onClick={toggleMenu} className={styles.menuLink}>Pool Details</Link>
-              </div>
-              <div className={styles.menuPanel}>
-                <button className={styles.closeLink} onClick={toggleMenu} aria-label="Close">&times;</button>
-                <button className={styles.menuButton} onClick={() => { openWalletModal(); toggleMenu(); }}>Wallet Connection</button>
-              </div>
-              <div className={styles.menuPanel}>
-                <button className={styles.closeLink} onClick={toggleMenu} aria-label="Close">&times;</button>
-                <button className={styles.menuButton} onClick={() => { openAdminDashboard(); toggleMenu(); }}>Admin Dashboard</button>
-              </div>
-            </nav>
-          </div>
-        )}
+        <HamburgerMenu open={menuOpen} onClose={toggleMenu} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
       </div>
       <Modal isOpen={walletModalOpen} onClose={closeWalletModal}>
         <h2>Wallet Connection</h2>

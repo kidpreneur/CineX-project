@@ -1,0 +1,98 @@
+.overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(30, 20, 60, 0.85);
+  z-index: 2000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  animation: fadeIn 0.4s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.menu {
+  background: #fff;
+  width: 320px;
+  max-width: 90vw;
+  height: 100vh;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.18);
+  border-top-left-radius: 2rem;
+  border-bottom-left-radius: 2rem;
+  padding: 2.2rem 1.5rem 1.5rem 2rem;
+  position: relative;
+  animation: slideIn 0.5s cubic-bezier(.68,-0.55,.27,1.55);
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100vw); }
+  to { transform: translateX(0); }
+}
+
+.closeBtn {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.5rem;
+  background: none;
+  border: none;
+  color: #2e1a47;
+  font-size: 2.2rem;
+  cursor: pointer;
+  z-index: 2;
+  transition: color 0.2s;
+}
+.closeBtn:hover {
+  color: #ffb347;
+}
+
+.menuList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.3rem;
+}
+.menuList li {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #2e1a47;
+  display: flex;
+  align-items: center;
+}
+.menuList a, .menuBtn {
+  color: #2e1a47;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.3rem 0.7rem;
+  border-radius: 0.7rem;
+  transition: background 0.2s, color 0.2s;
+}
+.menuList a:hover, .menuBtn:hover {
+  background: #ffb34722;
+  color: #ffb347;
+}
+
+.notificationsPanel {
+  background: #f8f8fa;
+  color: #2e1a47;
+  border-radius: 1rem;
+  box-shadow: 0 2px 12px #2e1a4744;
+  padding: 1rem 1.2rem;
+  margin-top: 0.7rem;
+  font-size: 1rem;
+  min-width: 200px;
+  position: absolute;
+  right: 2.5rem;
+  z-index: 10;
+}
