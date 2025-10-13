@@ -13,7 +13,9 @@
   "license": "ISC",
   "dependencies": {
     "@hirosystems/clarinet-sdk": "^2.3.2",
-    "@stacks/transactions": "^6.12.0",
+    "@stacks/connect": "^8.2.0",
+    "@stacks/network": "^7.2.0",
+    "@stacks/transactions": "^6.17.0",
     "chokidar-cli": "^3.0.0",
     "react-router-dom": "^7.8.2",
     "typescript": "^5.3.3",

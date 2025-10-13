@@ -1,5 +1,6 @@
 import React from 'react';
 import styles from '../styles/pages/CampaignDetail.module.css';
+import ContractCallExample from '../components/ContractCallExample';
 
 // Placeholder props for demonstration
 const campaign = {
@@ -38,6 +39,7 @@ const campaign = {
 const CampaignDetail: React.FC = () => {
   return (
     <div className={styles.campaignDetail}>
+      <ContractCallExample />
       <h1>{campaign.title}</h1>
       <p>{campaign.description}</p>
       <div className={styles.stateInfo}>

@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../auth/StacksAuthContext';
 import HamburgerMenu from './HamburgerMenu';
-import Modal from '../Modal';
-import WalletStatus from '../WalletStatus';
-import TransactionStatusModal from '../TransactionStatusModal';
 import { Link } from 'react-router-dom';
 import styles from '../../styles/Layout/Header.module.css';
 import handsLogo from '../../assets/hands-together-logo.svg';
@@ -10,41 +8,18 @@ import handsLogo from '../../assets/hands-together-logo.svg';
 const Header: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [walletModalOpen, setWalletModalOpen] = useState(false);
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string | undefined>(undefined);
-  const [walletStatus, setWalletStatus] = useState<string | undefined>(undefined);
-  // Mock connect/disconnect logic for Hiro wallet
-  const [txModalOpen, setTxModalOpen] = useState(false);
-  const [txStatus, setTxStatus] = useState<'pending' | 'success' | 'error' | null>(null);
-  const [txId, setTxId] = useState<string | undefined>(undefined);
-  const [txFee, setTxFee] = useState<string | undefined>(undefined);
-  const [txError, setTxError] = useState<string | undefined>(undefined);
 
-  const handleConnect = () => {
-    setWalletConnected(true);
-    setWalletAddress('SP2C2...EXAMPLE');
-    setWalletStatus('Connected');
-    // Simulate a transaction after connecting
-    setTxStatus('pending');
-    setTxFee('0.0005 STX');
-    setTxModalOpen(true);
-    setTimeout(() => {
-      setTxStatus('success');
-      setTxId('0xABC123...');
-    }, 2000);
-  };
-  const handleDisconnect = () => {
-    setWalletConnected(false);
-    setWalletAddress(undefined);
-    setWalletStatus('Disconnected');
-  };
-  const closeTxModal = () => {
-    setTxModalOpen(false);
-    setTxStatus(null);
-    setTxId(undefined);
-    setTxFee(undefined);
-    setTxError(undefined);
+  // Stacks authentication
+  const { userData, signIn, signOut } = useAuth();
+
+  // Helper to get address from userData
+  const getStacksAddress = () => {
+    if (!userData) return '';
+    // Stacks Connect v6+ puts addresses in userData.profile.stxAddress, but fallback to userData.stxAddress if needed
+    const addr = userData.profile?.stxAddress || userData.stxAddress;
+    if (typeof addr === 'string') return addr;
+    // If it's an object, prefer mainnet, fallback to testnet
+    return addr?.mainnet || addr?.testnet || '';
   };
 
   const toggleMenu = () => {
@@ -52,7 +27,6 @@ const Header: React.FC = () => {
   };
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
-  const closeWalletModal = () => setWalletModalOpen(false);
 
   return (
     <header className={styles.header}>
@@ -76,25 +50,18 @@ const Header: React.FC = () => {
         </button>
         <HamburgerMenu open={menuOpen} onClose={toggleMenu} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
       </div>
-      <Modal isOpen={walletModalOpen} onClose={closeWalletModal}>
-        <h2>Wallet Connection</h2>
-        <WalletStatus
-          onConnect={handleConnect}
-          onDisconnect={handleDisconnect}
-          isConnected={walletConnected}
-          address={walletAddress}
-          status={walletStatus}
-        />
-      </Modal>
-      {/* Admin dashboard modal removed; now navigates to page */}
-      <TransactionStatusModal
-        isOpen={txModalOpen}
-        onClose={closeTxModal}
-        status={txStatus}
-        txId={txId}
-        fee={txFee}
-        error={txError}
-      />
+      <div className={styles.walletSection}>
+        {userData ? (
+          <>
+            <span className={styles.walletAddress} title={getStacksAddress()}>
+              {getStacksAddress().slice(0, 6)}...{getStacksAddress().slice(-4)}
+            </span>
+            <button className={styles.walletButton} onClick={signOut}>Disconnect</button>
+          </>
+        ) : (
+          <button className={styles.walletButton} onClick={signIn}>Connect Wallet</button>
+        )}
+      </div>
     </header>
   );
 };
