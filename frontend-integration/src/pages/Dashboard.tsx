@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CreateCampaignModal } from '../components/Campaign';
 import ContributorRewards from '../components/Dashboard/ContributorRewards';
+import ContractCallExample from '../components/ContractCallExample';
 import styles from '../styles/pages/Dashboard.module.css';
 
 const Dashboard: React.FC = () => {
@@ -35,7 +36,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className={styles.dashboard}>
-      <header className={styles.header}>
+  <header className={styles.header}>
         <h1>Welcome, {user.name}</h1>
         <p className={styles.helperText}>This is your personal space to manage creative campaigns and investments. Here you can launch, track, and support campaigns in the creative and entertainment industry.</p>
         <div style={{ marginTop: '0.5rem' }}>
@@ -46,7 +47,8 @@ const Dashboard: React.FC = () => {
         </div>
       </header>
 
-      <div className={styles.mainGrid}>
+  <ContractCallExample />
+  <div className={styles.mainGrid}>
         <section className={`${styles.card} ${styles.profileSummary}`}>
           <h2 className={styles.cardTitle}>Profile Summary</h2>
           <ul>
