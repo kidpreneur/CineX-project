@@ -1,6 +1,6 @@
 // Stacks wallet authentication context for React
 import { createContext, useContext, useState, useEffect } from 'react';
-import { UserSession, AppConfig, showConnect } from '@stacks/connect';
+import { UserSession, AppConfig, authenticate } from '@stacks/connect';
 
 const appConfig = new AppConfig(['store_write', 'publish_data']);
 const userSession = new UserSession({ appConfig });
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, []);
 
   const signIn = () => {
-    showConnect({
+    authenticate({
       appDetails: {
         name: 'CineX',
         icon: window.location.origin + '/vite.svg',
